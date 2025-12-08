@@ -1,0 +1,24 @@
+services:
+  thay-tu-app:
+    # Build từ Dockerfile tại thư mục hiện tại
+    build: .
+    container_name: thay_tu_container
+    
+    # Map port: [Port Máy Thật]:[Port Container]
+    ports:
+      - "8000:8000"
+    
+    # Tự động load file .env
+    env_file:
+      - .env
+    
+    # Mount volume để sửa code xong không cần build lại (Dùng cho Dev)
+    volumes:
+      - .:/app
+    
+    # Tự động restart nếu app crash
+    restart: unless-stopped
+    
+    # Thêm biến môi trường phụ trợ
+    environment:
+      - FLASK_DEBUG=true  # Bật debug mode
