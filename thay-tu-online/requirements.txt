@@ -1,22 +1,27 @@
-# --- Framework & Server ---
+# --- Core Framework ---
 flask
 python-dotenv
+gunicorn
+
+# --- Google GenAI & Search ---
+duckduckgo-search
+google-genai>=0.2.0
+google-generativeai>=0.8.0
+
+# --- Google ADK ---
+google-adk>=0.4.0
 uvicorn
 fastapi
 python-multipart
 
-# --- Google AI & Agent Kit (Quan trọng) ---
-# Đây là gói chính thức chứa google.adk, không cần git clone
-google-adk>=0.4.0
-google-genai
-duckduckgo-search
-
-# --- Telemetry & Utilities ---
+# --- Utils ---
+Authlib
+requests
+httpx
+pydantic>=2.0
+jsonschema
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp
 opentelemetry-instrumentation
 opentelemetry-instrumentation-fastapi
-requests
-httpx
-pydantic>=2.0

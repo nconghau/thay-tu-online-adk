@@ -1,42 +1,29 @@
-# Sử dụng Python 3.11 Slim (Nhẹ, ổn định, hỗ trợ tốt Google ADK)
+# Sử dụng Python 3.11 Slim
 FROM python:3.11-slim
 
-# Thiết lập biến môi trường
-# PYTHONDONTWRITEBYTECODE: Ngăn python tạo file .pyc (không cần trong docker)
-# PYTHONUNBUFFERED: Log in ra console ngay lập tức (dễ debug)
+# Setup biến môi trường
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Thiết lập thư mục làm việc
+# Tạo user có ID 1000 (Yêu cầu của Hugging Face để tránh lỗi Permission)
+RUN useradd -m -u 1000 user
 WORKDIR /app
 
-# Cài đặt các gói hệ thống cần thiết (curl để healthcheck, build-essential nếu cần compile lib C++)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy file requirements trước để tận dụng Docker Cache
-COPY requirements.txt .
-
 # Cài đặt dependencies
-# --no-cache-dir: Giảm dung lượng image
-RUN pip install --upgrade pip && \
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy toàn bộ source code vào container
-COPY . .
+# Copy toàn bộ code và cấp quyền cho user 1000
+COPY --chown=user . /app
 
-# Tạo user non-root để chạy app (Best Practice về bảo mật)
-RUN useradd -m appuser && chown -R appuser /app
-USER appuser
+# Chuyển sang user non-root
+USER user
 
-# Expose port 8000 (Khớp với app.py)
-EXPOSE 8000
+# Mở port 7860 (BẮT BUỘC TRÊN HUGGING FACE)
+EXPOSE 7860
 
-# Healthcheck để đảm bảo container đang sống
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
-
-# Lệnh khởi chạy
-CMD ["python", "app.py"]
+# Dùng Gunicorn để chạy App. 
+# -b 0.0.0.0:7860: Bind vào port 7860
+# app:app : Tìm biến 'app' trong file 'app.py'
+CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app", "--timeout", "120"]
