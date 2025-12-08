@@ -6,7 +6,7 @@ services:
     
     # Map port: [Port Máy Thật]:[Port Container]
     ports:
-      - "8000:8000"
+      - "7860:7860"
     
     # Tự động load file .env
     env_file:

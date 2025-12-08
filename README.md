@@ -1,10 +1,11 @@
 ---
 title: Thay Tu Online
-emoji: 🧙‍♂️
-colorFrom: yellow
+emoji: 🐠
+colorFrom: green
 colorTo: purple
 sdk: docker
-app_port: 7860
 pinned: false
-root_path: thay-tu-online
+license: mit
 ---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference

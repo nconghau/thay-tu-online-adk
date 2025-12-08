@@ -2,13 +2,20 @@
 CẤU TRÚC THƯ MỤC DỰ ÁN
 ================================================================================
 .
+├── Dockerfile
 ├── FULL_PROJECT_CODE.txt
+├── README.md
 ├── agent
 │   ├── __init__.py
 │   └── agent.py
 ├── app.py
 ├── attached_assets
 │   └── agent_1765205934153.py
+├── demo-code-agent
+│   ├── __init__.py
+│   ├── agent.py
+│   └── agent_demo.py
+├── docker-compose.yml
 ├── export_code.sh
 ├── main.py
 ├── requirements.txt
@@ -18,37 +25,79 @@ CẤU TRÚC THƯ MỤC DỰ ÁN
 └── templates
     └── index.html
 
-5 directories, 11 files
+6 directories, 17 files
 
 
 
 ================================================================================
 FILE START: ./requirements.txt
 ================================================================================
-# --- Framework & Server ---
+# --- Core Framework ---
 flask
 python-dotenv
+gunicorn
+
+# --- Google GenAI & Search ---
+duckduckgo-search
+google-genai>=0.2.0
+google-generativeai>=0.8.0
+
+# --- Google ADK ---
+google-adk>=0.4.0
 uvicorn
 fastapi
 python-multipart
 
-# --- Google AI & Agent Kit (Quan trọng) ---
-# Đây là gói chính thức chứa google.adk, không cần git clone
-google-adk>=0.4.0
-google-genai
-duckduckgo-search
-
-# --- Telemetry & Utilities ---
+# --- Utils ---
+Authlib
+requests
+httpx
+pydantic>=2.0
+jsonschema
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp
 opentelemetry-instrumentation
 opentelemetry-instrumentation-fastapi
-requests
-httpx
-pydantic>=2.0
 
 FILE END: ./requirements.txt
+
+
+
+================================================================================
+FILE START: ./Dockerfile
+================================================================================
+# Sử dụng Python 3.11 Slim
+FROM python:3.11-slim
+
+# Setup biến môi trường
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Tạo user có ID 1000 (Yêu cầu của Hugging Face để tránh lỗi Permission)
+RUN useradd -m -u 1000 user
+WORKDIR /app
+
+# Cài đặt dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy toàn bộ code và cấp quyền cho user 1000
+COPY --chown=user . /app
+
+# Chuyển sang user non-root
+USER user
+
+# Mở port 7860 (BẮT BUỘC TRÊN HUGGING FACE)
+EXPOSE 7860
+
+# Dùng Gunicorn để chạy App. 
+# -b 0.0.0.0:7860: Bind vào port 7860
+# app:app : Tìm biến 'app' trong file 'app.py'
+CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app", "--timeout", "120"]
+
+FILE END: ./Dockerfile
 
 
 
@@ -182,6 +231,443 @@ FILE END: ./agent/agent.py
 
 
 ================================================================================
+FILE START: ./.venv/bin/fixup_admin_v2_keywords.py
+================================================================================
+#!/Users/macos/Documents/study/demo-adk/.venv/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import argparse
+import os
+import libcst as cst
+import pathlib
+import sys
+from typing import (Any, Callable, Dict, List, Sequence, Tuple)
+
+
+def partition(
+    predicate: Callable[[Any], bool],
+    iterator: Sequence[Any]
+) -> Tuple[List[Any], List[Any]]:
+    """A stable, out-of-place partition."""
+    results = ([], [])
+
+    for i in iterator:
+        results[int(predicate(i))].append(i)
+
+    # Returns trueList, falseList
+    return results[1], results[0]
+
+
+class adminCallTransformer(cst.CSTTransformer):
+    CTRL_PARAMS: Tuple[str] = ('retry', 'timeout', 'metadata')
+    METHOD_TO_PARAMS: Dict[str, Tuple[str]] = {
+        'check_consistency': ('name', 'consistency_token', 'standard_read_remote_writes', 'data_boost_read_local_writes', ),
+        'copy_backup': ('parent', 'backup_id', 'source_backup', 'expire_time', ),
+        'create_app_profile': ('parent', 'app_profile_id', 'app_profile', 'ignore_warnings', ),
+        'create_authorized_view': ('parent', 'authorized_view_id', 'authorized_view', ),
+        'create_backup': ('parent', 'backup_id', 'backup', ),
+        'create_cluster': ('parent', 'cluster_id', 'cluster', ),
+        'create_instance': ('parent', 'instance_id', 'instance', 'clusters', ),
+        'create_logical_view': ('parent', 'logical_view_id', 'logical_view', ),
+        'create_materialized_view': ('parent', 'materialized_view_id', 'materialized_view', ),
+        'create_table': ('parent', 'table_id', 'table', 'initial_splits', ),
+        'create_table_from_snapshot': ('parent', 'table_id', 'source_snapshot', ),
+        'delete_app_profile': ('name', 'ignore_warnings', ),
+        'delete_authorized_view': ('name', 'etag', ),
+        'delete_backup': ('name', ),
+        'delete_cluster': ('name', ),
+        'delete_instance': ('name', ),
+        'delete_logical_view': ('name', 'etag', ),
+        'delete_materialized_view': ('name', 'etag', ),
+        'delete_snapshot': ('name', ),
+        'delete_table': ('name', ),
+        'drop_row_range': ('name', 'row_key_prefix', 'delete_all_data_from_table', ),
+        'generate_consistency_token': ('name', ),
+        'get_app_profile': ('name', ),
+        'get_authorized_view': ('name', 'view', ),
+        'get_backup': ('name', ),
+        'get_cluster': ('name', ),
+        'get_iam_policy': ('resource', 'options', ),
+        'get_instance': ('name', ),
+        'get_logical_view': ('name', ),
+        'get_materialized_view': ('name', ),
+        'get_snapshot': ('name', ),
+        'get_table': ('name', 'view', ),
+        'list_app_profiles': ('parent', 'page_size', 'page_token', ),
+        'list_authorized_views': ('parent', 'page_size', 'page_token', 'view', ),
+        'list_backups': ('parent', 'filter', 'order_by', 'page_size', 'page_token', ),
+        'list_clusters': ('parent', 'page_token', ),
+        'list_hot_tablets': ('parent', 'start_time', 'end_time', 'page_size', 'page_token', ),
+        'list_instances': ('parent', 'page_token', ),
+        'list_logical_views': ('parent', 'page_size', 'page_token', ),
+        'list_materialized_views': ('parent', 'page_size', 'page_token', ),
+        'list_snapshots': ('parent', 'page_size', 'page_token', ),
+        'list_tables': ('parent', 'view', 'page_size', 'page_token', ),
+        'modify_column_families': ('name', 'modifications', 'ignore_warnings', ),
+        'partial_update_cluster': ('cluster', 'update_mask', ),
+        'partial_update_instance': ('instance', 'update_mask', ),
+        'restore_table': ('parent', 'table_id', 'backup', ),
+        'set_iam_policy': ('resource', 'policy', 'update_mask', ),
+        'snapshot_table': ('name', 'cluster', 'snapshot_id', 'ttl', 'description', ),
+        'test_iam_permissions': ('resource', 'permissions', ),
+        'undelete_table': ('name', ),
+        'update_app_profile': ('app_profile', 'update_mask', 'ignore_warnings', ),
+        'update_authorized_view': ('authorized_view', 'update_mask', 'ignore_warnings', ),
+        'update_backup': ('backup', 'update_mask', ),
+        'update_cluster': ('name', 'location', 'state', 'serve_nodes', 'node_scaling_factor', 'cluster_config', 'default_storage_type', 'encryption_config', ),
+        'update_instance': ('display_name', 'name', 'state', 'type_', 'labels', 'create_time', 'satisfies_pzs', 'satisfies_pzi', ),
+        'update_logical_view': ('logical_view', 'update_mask', ),
+        'update_materialized_view': ('materialized_view', 'update_mask', ),
+        'update_table': ('table', 'update_mask', 'ignore_warnings', ),
+    }
+
+    def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.CSTNode:
+        try:
+            key = original.func.attr.value
+            kword_params = self.METHOD_TO_PARAMS[key]
+        except (AttributeError, KeyError):
+            # Either not a method from the API or too convoluted to be sure.
+            return updated
+
+        # If the existing code is valid, keyword args come after positional args.
+        # Therefore, all positional args must map to the first parameters.
+        args, kwargs = partition(lambda a: not bool(a.keyword), updated.args)
+        if any(k.keyword.value == "request" for k in kwargs):
+            # We've already fixed this file, don't fix it again.
+            return updated
+
+        kwargs, ctrl_kwargs = partition(
+            lambda a: a.keyword.value not in self.CTRL_PARAMS,
+            kwargs
+        )
+
+        args, ctrl_args = args[:len(kword_params)], args[len(kword_params):]
+        ctrl_kwargs.extend(cst.Arg(value=a.value, keyword=cst.Name(value=ctrl))
+                           for a, ctrl in zip(ctrl_args, self.CTRL_PARAMS))
+
+        request_arg = cst.Arg(
+            value=cst.Dict([
+                cst.DictElement(
+                    cst.SimpleString("'{}'".format(name)),
+cst.Element(value=arg.value)
+                )
+                # Note: the args + kwargs looks silly, but keep in mind that
+                # the control parameters had to be stripped out, and that
+                # those could have been passed positionally or by keyword.
+                for name, arg in zip(kword_params, args + kwargs)]),
+            keyword=cst.Name("request")
+        )
+
+        return updated.with_changes(
+            args=[request_arg] + ctrl_kwargs
+        )
+
+
+def fix_files(
+    in_dir: pathlib.Path,
+    out_dir: pathlib.Path,
+    *,
+    transformer=adminCallTransformer(),
+):
+    """Duplicate the input dir to the output dir, fixing file method calls.
+
+    Preconditions:
+    * in_dir is a real directory
+    * out_dir is a real, empty directory
+    """
+    pyfile_gen = (
+        pathlib.Path(os.path.join(root, f))
+        for root, _, files in os.walk(in_dir)
+        for f in files if os.path.splitext(f)[1] == ".py"
+    )
+
+    for fpath in pyfile_gen:
+        with open(fpath, 'r') as f:
+            src = f.read()
+
+        # Parse the code and insert method call fixes.
+        tree = cst.parse_module(src)
+        updated = tree.visit(transformer)
+
+        # Create the path and directory structure for the new file.
+        updated_path = out_dir.joinpath(fpath.relative_to(in_dir))
+        updated_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Generate the updated source file at the corresponding path.
+        with open(updated_path, 'w') as f:
+            f.write(updated.code)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="""Fix up source that uses the admin client library.
+
+The existing sources are NOT overwritten but are copied to output_dir with changes made.
+
+Note: This tool operates at a best-effort level at converting positional
+      parameters in client method calls to keyword based parameters.
+      Cases where it WILL FAIL include
+      A) * or ** expansion in a method call.
+      B) Calls via function or method alias (includes free function calls)
+      C) Indirect or dispatched calls (e.g. the method is looked up dynamically)
+
+      These all constitute false negatives. The tool will also detect false
+      positives when an API method shares a name with another method.
+""")
+    parser.add_argument(
+        '-d',
+        '--input-directory',
+        required=True,
+        dest='input_dir',
+        help='the input directory to walk for python files to fix up',
+    )
+    parser.add_argument(
+        '-o',
+        '--output-directory',
+        required=True,
+        dest='output_dir',
+        help='the directory to output files fixed via un-flattening',
+    )
+    args = parser.parse_args()
+    input_dir = pathlib.Path(args.input_dir)
+    output_dir = pathlib.Path(args.output_dir)
+    if not input_dir.is_dir():
+        print(
+            f"input directory '{input_dir}' does not exist or is not a directory",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    if not output_dir.is_dir():
+        print(
+            f"output directory '{output_dir}' does not exist or is not a directory",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    if os.listdir(output_dir):
+        print(
+            f"output directory '{output_dir}' is not empty",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    fix_files(input_dir, output_dir)
+
+
+FILE END: ./.venv/bin/fixup_admin_v2_keywords.py
+
+
+
+================================================================================
+FILE START: ./.venv/bin/fixup_bigtable_v2_keywords.py
+================================================================================
+#!/Users/macos/Documents/study/demo-adk/.venv/bin/python
+# -*- coding: utf-8 -*-
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import argparse
+import os
+import libcst as cst
+import pathlib
+import sys
+from typing import (Any, Callable, Dict, List, Sequence, Tuple)
+
+
+def partition(
+    predicate: Callable[[Any], bool],
+    iterator: Sequence[Any]
+) -> Tuple[List[Any], List[Any]]:
+    """A stable, out-of-place partition."""
+    results = ([], [])
+
+    for i in iterator:
+        results[int(predicate(i))].append(i)
+
+    # Returns trueList, falseList
+    return results[1], results[0]
+
+
+class bigtableCallTransformer(cst.CSTTransformer):
+    CTRL_PARAMS: Tuple[str] = ('retry', 'timeout', 'metadata')
+    METHOD_TO_PARAMS: Dict[str, Tuple[str]] = {
+        'check_and_mutate_row': ('row_key', 'table_name', 'authorized_view_name', 'app_profile_id', 'predicate_filter', 'true_mutations', 'false_mutations', ),
+        'execute_query': ('instance_name', 'query', 'params', 'app_profile_id', 'prepared_query', 'proto_format', 'resume_token', ),
+        'generate_initial_change_stream_partitions': ('table_name', 'app_profile_id', ),
+        'mutate_row': ('row_key', 'mutations', 'table_name', 'authorized_view_name', 'app_profile_id', 'idempotency', ),
+        'mutate_rows': ('entries', 'table_name', 'authorized_view_name', 'app_profile_id', ),
+        'ping_and_warm': ('name', 'app_profile_id', ),
+        'prepare_query': ('instance_name', 'query', 'param_types', 'app_profile_id', 'proto_format', ),
+        'read_change_stream': ('table_name', 'app_profile_id', 'partition', 'start_time', 'continuation_tokens', 'end_time', 'heartbeat_duration', ),
+        'read_modify_write_row': ('row_key', 'rules', 'table_name', 'authorized_view_name', 'app_profile_id', ),
+        'read_rows': ('table_name', 'authorized_view_name', 'materialized_view_name', 'app_profile_id', 'rows', 'filter', 'rows_limit', 'request_stats_view', 'reversed', ),
+        'sample_row_keys': ('table_name', 'authorized_view_name', 'materialized_view_name', 'app_profile_id', ),
+    }
+
+    def leave_Call(self, original: cst.Call, updated: cst.Call) -> cst.CSTNode:
+        try:
+            key = original.func.attr.value
+            kword_params = self.METHOD_TO_PARAMS[key]
+        except (AttributeError, KeyError):
+            # Either not a method from the API or too convoluted to be sure.
+            return updated
+
+        # If the existing code is valid, keyword args come after positional args.
+        # Therefore, all positional args must map to the first parameters.
+        args, kwargs = partition(lambda a: not bool(a.keyword), updated.args)
+        if any(k.keyword.value == "request" for k in kwargs):
+            # We've already fixed this file, don't fix it again.
+            return updated
+
+        kwargs, ctrl_kwargs = partition(
+            lambda a: a.keyword.value not in self.CTRL_PARAMS,
+            kwargs
+        )
+
+        args, ctrl_args = args[:len(kword_params)], args[len(kword_params):]
+        ctrl_kwargs.extend(cst.Arg(value=a.value, keyword=cst.Name(value=ctrl))
+                           for a, ctrl in zip(ctrl_args, self.CTRL_PARAMS))
+
+        request_arg = cst.Arg(
+            value=cst.Dict([
+                cst.DictElement(
+                    cst.SimpleString("'{}'".format(name)),
+cst.Element(value=arg.value)
+                )
+                # Note: the args + kwargs looks silly, but keep in mind that
+                # the control parameters had to be stripped out, and that
+                # those could have been passed positionally or by keyword.
+                for name, arg in zip(kword_params, args + kwargs)]),
+            keyword=cst.Name("request")
+        )
+
+        return updated.with_changes(
+            args=[request_arg] + ctrl_kwargs
+        )
+
+
+def fix_files(
+    in_dir: pathlib.Path,
+    out_dir: pathlib.Path,
+    *,
+    transformer=bigtableCallTransformer(),
+):
+    """Duplicate the input dir to the output dir, fixing file method calls.
+
+    Preconditions:
+    * in_dir is a real directory
+    * out_dir is a real, empty directory
+    """
+    pyfile_gen = (
+        pathlib.Path(os.path.join(root, f))
+        for root, _, files in os.walk(in_dir)
+        for f in files if os.path.splitext(f)[1] == ".py"
+    )
+
+    for fpath in pyfile_gen:
+        with open(fpath, 'r') as f:
+            src = f.read()
+
+        # Parse the code and insert method call fixes.
+        tree = cst.parse_module(src)
+        updated = tree.visit(transformer)
+
+        # Create the path and directory structure for the new file.
+        updated_path = out_dir.joinpath(fpath.relative_to(in_dir))
+        updated_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Generate the updated source file at the corresponding path.
+        with open(updated_path, 'w') as f:
+            f.write(updated.code)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="""Fix up source that uses the bigtable client library.
+
+The existing sources are NOT overwritten but are copied to output_dir with changes made.
+
+Note: This tool operates at a best-effort level at converting positional
+      parameters in client method calls to keyword based parameters.
+      Cases where it WILL FAIL include
+      A) * or ** expansion in a method call.
+      B) Calls via function or method alias (includes free function calls)
+      C) Indirect or dispatched calls (e.g. the method is looked up dynamically)
+
+      These all constitute false negatives. The tool will also detect false
+      positives when an API method shares a name with another method.
+""")
+    parser.add_argument(
+        '-d',
+        '--input-directory',
+        required=True,
+        dest='input_dir',
+        help='the input directory to walk for python files to fix up',
+    )
+    parser.add_argument(
+        '-o',
+        '--output-directory',
+        required=True,
+        dest='output_dir',
+        help='the directory to output files fixed via un-flattening',
+    )
+    args = parser.parse_args()
+    input_dir = pathlib.Path(args.input_dir)
+    output_dir = pathlib.Path(args.output_dir)
+    if not input_dir.is_dir():
+        print(
+            f"input directory '{input_dir}' does not exist or is not a directory",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    if not output_dir.is_dir():
+        print(
+            f"output directory '{output_dir}' does not exist or is not a directory",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    if os.listdir(output_dir):
+        print(
+            f"output directory '{output_dir}' is not empty",
+            file=sys.stderr,
+        )
+        sys.exit(-1)
+
+    fix_files(input_dir, output_dir)
+
+
+FILE END: ./.venv/bin/fixup_bigtable_v2_keywords.py
+
+
+
+================================================================================
 FILE START: ./app.py
 ================================================================================
 import os
@@ -298,8 +784,8 @@ def reset_session():
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    print("🚀 App đang chạy tại: http://localhost:8000")
-    app.run(host='0.0.0.0', port=8000, debug=debug_mode)
+    print("🚀 App đang chạy tại: http://localhost:7860")
+    app.run(host='0.0.0.0', port=7860, debug=debug_mode)
 
 
 FILE END: ./app.py
@@ -315,6 +801,15 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ======== Script run ===========
+
+# python3 -m venv venv 
+# source venv/bin/activate
+# pip install -r requirements.txt
+# python app.py
+
+# docker-compose up --build -d  
 
 
 FILE END: ./main.py
@@ -457,6 +952,212 @@ if __name__ == "__main__":
     print("--- THẦY TƯ (PHIÊN BẢN TINH CHỈNH) ---")
 
 FILE END: ./attached_assets/agent_1765205934153.py
+
+
+
+================================================================================
+FILE START: ./demo-code-agent/agent_demo.py
+================================================================================
+from google.adk.agents.llm_agent import Agent
+from datetime import datetime
+from zoneinfo import ZoneInfo # Thư viện xử lý múi giờ có sẵn trong Python 3.9+
+
+# --- PHẦN 1: ĐỊNH NGHĨA TOOLS (CÔNG CỤ) ---
+
+def get_current_time(timezone: str) -> dict:
+    """
+    Trả về thời gian hiện tại chính xác theo múi giờ được yêu cầu.
+    
+    Args:
+        timezone (str): Tên múi giờ (ví dụ: 'Asia/Ho_Chi_Minh', 'America/New_York', 'Europe/London').
+    """
+    try:
+        # Lấy giờ thực tế từ hệ thống
+        now = datetime.now(ZoneInfo(timezone))
+        return {
+            "status": "success",
+            "timezone": timezone,
+            "time": now.strftime("%H:%M:%S"), # Giờ:Phút:Giây
+            "date": now.strftime("%Y-%m-%d"), # Năm-Tháng-Ngày
+            "day_of_week": now.strftime("%A") # Thứ trong tuần
+        }
+    except Exception as e:
+        # Xử lý nếu AI gửi sai tên múi giờ
+        return {
+            "status": "error", 
+            "message": f"Không tìm thấy múi giờ '{timezone}'. Vui lòng thử lại với tên chuẩn (VD: Asia/Tokyo)."
+        }
+
+# --- PHẦN 2: ĐỊNH NGHĨA AGENT ---
+
+root_agent = Agent(
+    model='gemini-2.5-flash',
+    name='root_agent',
+    description="Trợ lý thời gian quốc tế.",
+    instruction=(
+        "Bạn là một trợ lý hữu ích chuyên về thời gian. "
+        "Khi người dùng hỏi giờ tại một thành phố, hãy suy luận ra 'timezone' của thành phố đó "
+        "và sử dụng tool 'get_current_time' để lấy thông tin chính xác. "
+        "Trả lời bằng tiếng Việt thân thiện."
+    ),
+    # Đăng ký tool vào agent tại đây
+    tools=[get_current_time],
+)
+
+# Dòng này để xác nhận code không lỗi cú pháp khi chạy
+if __name__ == "__main__":
+    print("Agent 'root_agent' đã sẵn sàng với tool 'get_current_time'.")
+
+FILE END: ./demo-code-agent/agent_demo.py
+
+
+
+================================================================================
+FILE START: ./demo-code-agent/__init__.py
+================================================================================
+from . import agent
+
+
+FILE END: ./demo-code-agent/__init__.py
+
+
+
+================================================================================
+FILE START: ./demo-code-agent/agent.py
+================================================================================
+import re
+import datetime
+import random
+from duckduckgo_search import DDGS
+from google.adk.agents.llm_agent import Agent
+
+# ==========================================
+# 1. BỘ XỬ LÝ ĐẦU VÀO & LOGIC CƠ BẢN (GIỮ NGUYÊN)
+# ==========================================
+
+def _chuan_hoa_nam_sinh(text_input: str) -> int:
+    text = str(text_input).lower().strip()
+    match_4 = re.search(r'\b(19|20)\d{2}\b', text)
+    if match_4: return int(match_4.group(0))
+    match_2k = re.search(r'\b2k(\d{0,1})\b', text)
+    if match_2k:
+        suffix = match_2k.group(1)
+        return 2000 if suffix == "" else 2000 + int(suffix)
+    match_2 = re.search(r'\b\d{2}\b', text)
+    if match_2:
+        val = int(match_2.group(0))
+        if 12 < val <= 99:
+            return 1900 + val if val > 40 else 2000 + val
+    return None
+
+def _tinh_can_chi(nam_sinh: int) -> str:
+    can = ["Canh", "Tân", "Nhâm", "Quý", "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ"]
+    chi = ["Thân", "Dậu", "Tuất", "Hợi", "Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi"]
+    return f"{can[nam_sinh % 10]} {chi[nam_sinh % 12]}"
+
+def _tinh_sao_han(nam_sinh: int, gioi_tinh: str) -> dict:
+    current_year = datetime.datetime.now().year
+    tuoi_mu = current_year - nam_sinh + 1
+    # Logic bảng sao
+    bang_sao_nam = {1: "La Hầu", 2: "Thổ Tú", 3: "Thủy Diệu", 4: "Thái Bạch", 5: "Thái Dương", 6: "Vân Hớn", 7: "Kế Đô", 8: "Thái Âm", 0: "Mộc Đức"}
+    bang_sao_nu = {1: "Kế Đô", 2: "Vân Hớn", 3: "Mộc Đức", 4: "Thái Âm", 5: "Thổ Tú", 6: "La Hầu", 7: "Thái Dương", 8: "Thái Bạch", 0: "Thủy Diệu"}
+    
+    du_so = tuoi_mu % 9
+    gioi_tinh = gioi_tinh.lower().strip()
+    is_nu = any(x in gioi_tinh for x in ["nữ", "gái", "cô", "bà", "chị", "female"])
+    
+    sao = bang_sao_nu[du_so] if is_nu else bang_sao_nam[du_so]
+    phai = "Nữ mạng" if is_nu else "Nam mạng"
+        
+    return {"tuoi_mu": tuoi_mu, "sao": sao, "phai": phai}
+
+# ==========================================
+# 2. TOOLS (TINH CHỈNH OUTPUT GỌN HƠN)
+# ==========================================
+
+def xem_sao_giai_han(du_lieu_dau_vao: str, gioi_tinh: str = "nam") -> dict:
+    ns = _chuan_hoa_nam_sinh(du_lieu_dau_vao)
+    if ns is None: return {"status": "missing_info", "message": "Thiếu năm sinh."}
+    
+    can_chi = _tinh_can_chi(ns)
+    ket_qua = _tinh_sao_han(ns, gioi_tinh)
+    
+    return {
+        "status": "success",
+        "nam_sinh": ns,
+        "can_chi": can_chi,
+        "sao_han": f"Sao {ket_qua['sao']}",
+        "loi_khuyen_goc": "Dựa vào sao này để phán tốt xấu."
+    }
+
+def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -> dict:
+    ns = _chuan_hoa_nam_sinh(du_lieu_dau_vao)
+    if ns is None: return {"status": "missing_info", "message": "Thiếu năm sinh."}
+        
+    try:
+        can_chi = _tinh_can_chi(ns)
+        current_year = datetime.datetime.now().year + 1
+        
+        # Query tập trung vào "luận giải" để lấy nội dung chất lượng
+        query = f"Tử vi tuổi {can_chi} sinh năm {ns} năm {current_year} {linh_vuc} luận giải chi tiết"
+        print(f"\n[SYSTEM] 🔍 Tra cứu: '{query}'")
+
+        results = DDGS().text(keywords=query, region='vn-vi', max_results=4)
+        
+        knowledge = []
+        if results:
+            for res in results:
+                # Lọc rác
+                if len(res['body']) > 60 and "đăng nhập" not in res['body'].lower() and "yahoo" not in res['body'].lower():
+                    knowledge.append(f"- {res['body']}")
+        
+        if not knowledge:
+            return {"status": "no_data", "message": "Không tìm thấy online, hãy dùng kiến thức Can Chi ngũ hành tự suy luận."}
+
+        return {
+            "status": "success",
+            "tuoi": can_chi,
+            "du_lieu_tu_vi": "\n".join(knowledge),
+            "instruction": "Phân tích dữ liệu này. Nếu tốt -> Vui vẻ. Nếu xấu -> Nghiêm túc, an ủi."
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": f"Lỗi: {e}"}
+
+# ==========================================
+# 3. PERSONA: THẦY TƯ "SÂU SẮC" (NO ACTIONS)
+# ==========================================
+
+root_agent = Agent(
+    model='gemini-2.5-flash',
+    name='thay_tu_refined',
+    description="Thầy Tư tinh tế, ứng biến linh hoạt.",
+    instruction=(
+        "Con là 'Thầy Tư' - chuyên gia tử vi Nam Bộ hiện đại."
+        "\n\n"
+        "1. QUY TẮC BẤT DI BẤT DỊCH:"
+        "- **KHÔNG** dùng hành động trong ngoặc đơn như (cười), (vỗ đùi). Chỉ dùng lời nói tự nhiên."
+        "- **KHÔNG** vòng vo. Trả lời thẳng vào trọng tâm câu hỏi ngay."
+        "- **KHÔNG** đổ lỗi cho 'công cụ' hay 'Zalo nhiễu sóng'. Nếu không có dữ liệu online, hãy dùng kiến thức Ngũ Hành (Kim Mộc Thủy Hỏa Thổ) để tự luận giải."
+        "\n\n"
+        "2. CƠ CHẾ CẢM XÚC (ADAPTIVE TONE):"
+        "- **Trường hợp VUI (Hỏi chơi, tin tốt, đang yêu):** Dùng giọng điệu Gen Z, hài hước, dùng từ: 'Chốt đơn', 'Xịn sò', 'Ngon lành', 'Green flag'."
+        "- **Trường hợp NGHIÊM TÚC (Tin xấu, sao hạn nặng, thất tình):** Bỏ ngay giọng cợt nhả. Dùng giọng trầm ổn, chân thành, đưa lời khuyên thực tế (Healing, cẩn thận xe cộ, giữ tiền)."
+        "\n\n"
+        "3. CẤU TRÚC TRẢ LỜI:"
+        "- **Mở đầu:** Gọi tên Can Chi khách (VD: Tân Tỵ 2001) để xác nhận."
+        "- **Thân bài (Ngắn gọn):** Đưa ra nhận định Tốt/Xấu ngay. Tóm tắt 1-2 ý chính quan trọng nhất."
+        "- **Kết bài:** Hỏi xem khách có muốn đào sâu vào chi tiết không."
+    ),
+    tools=[xem_sao_giai_han, tra_cuu_tu_vi_online], 
+    # database: conversation tools
+    # system prompt (cache): 4. người đó vui => genZ, người đó nghiêm túc => nghiêm túc,... 5. tích hợp API sản phẩm (bán sách, focus problem?)
+)
+
+if __name__ == "__main__":
+    print("--- THẦY TƯ (PHIÊN BẢN TINH CHỈNH) ---")
+
+FILE END: ./demo-code-agent/agent.py
 
 
 
