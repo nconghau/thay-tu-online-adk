@@ -13,8 +13,8 @@ def _chuan_hoa_nam_sinh(text_input: str) -> int:
     match_4 = re.search(r'\b(19|20)\d{2}\b', text)
     if match_4: return int(match_4.group(0))
     
-    # Case 2: Nhập kiểu Gen Z (2k1, 2k)
-    match_2k = re.search(r'\b2k(\d{0,1})\b', text)
+    # Case 2: Nhập kiểu Gen Z (2k1, 2k, 2k10)
+    match_2k = re.search(r'\b2k(\d*)\b', text)
     if match_2k:
         suffix = match_2k.group(1)
         return 2000 if suffix == "" else 2000 + int(suffix)
@@ -121,25 +121,28 @@ def phan_tich_chi_so_khoa_hoc(nam_sinh_input: str, gioi_tinh: str = "nam") -> di
     if ns is None: 
         return {"status": "error", "message": "Cần cung cấp năm sinh cụ thể để chạy thuật toán phân tích."}
     
-    # Gọi bộ tính toán
-    engine = TuViMetrics()
-    data = engine.tinh_chi_so(ns, gioi_tinh)
-    
-    # QUAN TRỌNG: Trả về một "Special Token" hoặc JSON string để Frontend nhận diện
-    return {
-        "status": "success",
-        "type": "chart_data", # Cờ để frontend biết đường vẽ
-        "nam_sinh": ns,
-        "ngu_hanh": data['element'],
-        "scores": data['metrics'],
-        "text_summary": f"Thầy đã chạy mô hình phân tích dữ liệu cho con (Năm {ns}).\n\n🔮 **Tổng quan:** {data['insight']}\n\nNhìn vào biểu đồ bên dưới để thấy rõ tiềm năng nhé!",
-        "chart_config": {
-            "labels": ["Thân Mệnh", "Tài Lộc", "Sự Nghiệp", "Tình Duyên", "Phúc Đức"],
-            "data": [data['metrics']['than_menh'], data['metrics']['tai_loc'], 
-                     data['metrics']['quan_loc'], data['metrics']['tinh_duyen'], 
-                     data['metrics']['phuc_duc']]
+    try:
+        # Gọi bộ tính toán
+        engine = TuViMetrics()
+        data = engine.tinh_chi_so(ns, gioi_tinh)
+        
+        # QUAN TRỌNG: Trả về một "Special Token" hoặc JSON string để Frontend nhận diện
+        return {
+            "status": "success",
+            "type": "chart_data", # Cờ để frontend biết đường vẽ
+            "nam_sinh": ns,
+            "ngu_hanh": data['element'],
+            "scores": data['metrics'],
+            "text_summary": f"Thầy đã chạy mô hình phân tích dữ liệu cho con (Năm {ns} - {data['element']} - {gioi_tinh.title()}).\n\n🔮 **Tổng quan:** {data['insight']}\n\nNhìn vào biểu đồ bên dưới để thấy rõ tiềm năng nhé!",
+            "chart_config": {
+                "labels": ["Thân Mệnh", "Tài Lộc", "Sự Nghiệp", "Tình Duyên", "Phúc Đức"],
+                "data": [data['metrics']['than_menh'], data['metrics']['tai_loc'], 
+                         data['metrics']['quan_loc'], data['metrics']['tinh_duyen'], 
+                         data['metrics']['phuc_duc']]
+            }
         }
-    }
+    except Exception as e:
+        return {"status": "error", "message": f"Máy tính của thầy bị nóng quá, tính chưa ra. Lỗi: {str(e)}. Con thử lại sau nghen!"}
 
 root_agent = Agent(
     model='gemini-2.5-flash',

@@ -112,6 +112,18 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/\n/g, '<br>');
     }
 
+    let loadingInterval;
+    const loadingPhrases = [
+        "Thầy đang bấm quẻ...",
+        "Đợi thầy thắp cây nhang cái đã...",
+        "Thiên linh linh, địa linh linh...",
+        "Để thầy coi lại sách Tử Vi...",
+        "Hồi hộp hông? Đợi xíu nghen...",
+        "Sao này chiếu hơi lạ, để tính kỹ chút...",
+        "Trời ơi, cái tuổi này...",
+        "Ngũ hành đang xoay chuyển..."
+    ];
+
     function showTypingIndicator() {
         const indicator = document.createElement('div');
         indicator.className = 'message bot-message';
@@ -122,14 +134,29 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="message-content">
                 <i class="fas fa-pen-nib fa-spin-slow" style="font-size: 0.8rem; margin-right: 5px;"></i>
-                Thầy đang bấm quẻ...
+                <span id="loadingText">${loadingPhrases[0]}</span>
             </div>
         `;
         chatMessages.appendChild(indicator);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        let index = 0;
+        // Xoay vòng câu thoại mỗi 2.5 giây
+        loadingInterval = setInterval(() => {
+            index = (index + 1) % loadingPhrases.length;
+            const textSpan = indicator.querySelector('#loadingText');
+            if (textSpan) {
+                textSpan.style.opacity = 0;
+                setTimeout(() => {
+                    textSpan.textContent = loadingPhrases[index];
+                    textSpan.style.opacity = 1;
+                }, 200); // Hiệu ứng fade nhẹ
+            }
+        }, 2500);
     }
 
     function hideTypingIndicator() {
+        if (loadingInterval) clearInterval(loadingInterval);
         const indicator = document.getElementById('typingIndicator');
         if (indicator) {
             indicator.remove();
