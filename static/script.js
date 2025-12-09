@@ -26,11 +26,84 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
 
-        innerHTML += `<div class="message-content">${formatMessage(content)}</div>`;
+        // Parse for chart data
+        const { text, chartData } = parseContent(content);
+
+        innerHTML += `<div class="message-content">
+                        ${formatMessage(text)}
+                        ${chartData ? '<div class="chart-container" style="position: relative; height:300px; width:100%"><canvas id="chart-' + Date.now() + '"></canvas></div>' : ''}
+                      </div>`;
         messageDiv.innerHTML = innerHTML;
         
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        if (chartData) {
+            const canvasId = messageDiv.querySelector('canvas').id;
+            renderChart(canvasId, chartData);
+        }
+    }
+
+    function parseContent(content) {
+        // Regex to find JSON block: ```json { ... } ```
+        const jsonBlockRegex = /```json\s*(\{[\s\S]*?"type"\s*:\s*"chart_data"[\s\S]*?\})\s*```/;
+        const match = content.match(jsonBlockRegex);
+        
+        if (match) {
+            try {
+                const chartData = JSON.parse(match[1]);
+                const cleanText = content.replace(jsonBlockRegex, '').trim();
+                return { text: cleanText, chartData: chartData };
+            } catch (e) {
+                console.error("Error parsing chart JSON:", e);
+                return { text: content, chartData: null };
+            }
+        }
+        return { text: content, chartData: null };
+    }
+
+    function renderChart(canvasId, data) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const config = data.chart_config;
+        
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: config.labels,
+                datasets: [{
+                    label: `Chỉ số năng lượng năm ${data.nam_sinh}`,
+                    data: config.data,
+                    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                    borderColor: '#ffd700',
+                    pointBackgroundColor: '#8b0000',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(245, 230, 211, 0.2)' },
+                        grid: { color: 'rgba(245, 230, 211, 0.2)' },
+                        pointLabels: { 
+                            color: '#f5e6d3',
+                            font: { size: 12 }
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: 'rgba(245, 230, 211, 0.5)'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#f5e6d3' }
+                    }
+                },
+                maintainAspectRatio: false
+            }
+        });
     }
 
     function formatMessage(text) {

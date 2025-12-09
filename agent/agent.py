@@ -2,6 +2,8 @@ import re
 import datetime
 from duckduckgo_search import DDGS
 from google.adk.agents.llm_agent import Agent
+import json
+from .tuvi_metrics import TuViMetrics
 
 def _chuan_hoa_nam_sinh(text_input: str) -> int:
     text = str(text_input).lower().strip()
@@ -110,15 +112,44 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
     except Exception as e:
         return {"status": "error", "message": f"Lỗi hệ thống: {e}"}
 
+def phan_tich_chi_so_khoa_hoc(nam_sinh_input: str, gioi_tinh: str = "nam") -> dict:
+    """
+    Dùng khi người dùng muốn xem biểu đồ, điểm số, hoặc phân tích theo kiểu khoa học dữ liệu.
+    Trả về cấu trúc JSON đặc biệt để vẽ biểu đồ.
+    """
+    ns = _chuan_hoa_nam_sinh(nam_sinh_input)
+    if ns is None: 
+        return {"status": "error", "message": "Cần cung cấp năm sinh cụ thể để chạy thuật toán phân tích."}
+    
+    # Gọi bộ tính toán
+    engine = TuViMetrics()
+    data = engine.tinh_chi_so(ns, gioi_tinh)
+    
+    # QUAN TRỌNG: Trả về một "Special Token" hoặc JSON string để Frontend nhận diện
+    return {
+        "status": "success",
+        "type": "chart_data", # Cờ để frontend biết đường vẽ
+        "nam_sinh": ns,
+        "ngu_hanh": data['element'],
+        "scores": data['metrics'],
+        "text_summary": f"Thầy đã chạy mô hình phân tích dữ liệu cho con (Năm {ns}).\n\n🔮 **Tổng quan:** {data['insight']}\n\nNhìn vào biểu đồ bên dưới để thấy rõ tiềm năng nhé!",
+        "chart_config": {
+            "labels": ["Thân Mệnh", "Tài Lộc", "Sự Nghiệp", "Tình Duyên", "Phúc Đức"],
+            "data": [data['metrics']['than_menh'], data['metrics']['tai_loc'], 
+                     data['metrics']['quan_loc'], data['metrics']['tinh_duyen'], 
+                     data['metrics']['phuc_duc']]
+        }
+    }
+
 root_agent = Agent(
     model='gemini-2.5-flash',
     name='thay_tu_refined',
-    description="Thầy Tư tinh tế, ứng biến linh hoạt.",
+    description="Thầy Tư tinh tế, ứng biến linh hoạt và biết phân tích dữ liệu khoa học.",
     instruction=(
-        "Con là 'Thầy Tư' - chuyên gia tử vi, thầy bói miệt vườn Nam Bộ."
+        "Con là 'Thầy Tư' - chuyên gia tử vi Nam Bộ kết hợp Khoa học dữ liệu."
         "\n\n"
         "1. PHONG CÁCH NGÔN NGỮ (MIỀN TÂY NAM BỘ):"
-        "- **Xưng hô:** Xưng là 'Tui' (hoặc 'Qua' nếu muốn ra vẻ lão làng), gọi khách là 'Con', 'Cưng', 'Chế', 'Hiền đệ', 'Con' (nếu khách nhỏ), hoặc 'Mình' (thân mật)."
+        "- **Xưng hô:** Xưng là 'Tui' (hoặc 'Qua' nếu muốn ra vẻ lão làng), gọi khách là 'Con' (nếu khách nhỏ), 'Cưng', 'Chế', 'Hiền đệ', hoặc 'Mình' (thân mật)."
         "- **Từ ngữ đặc trưng:** 'Hông' (không), 'Nghen' (nhé), 'Đặng' (được), 'Mơi' (mai), 'Vầy nè', 'Sao trăng', 'Cà chớn', 'Xịn sò', 'Rầu thúi ruột'..."
         "- **Giọng điệu:** Dân dã, tưng tửng, hài hước, chân chất nhưng đôi lúc ra vẻ 'huyền bí' kiểu thầy bà."
         "\n\n"
@@ -137,7 +168,19 @@ root_agent = Agent(
         "- **Thân bài:** Phán thẳng, khen hay chê rõ ràng. Dùng mấy từ biểu cảm mạnh."
         "- **Kết bài:** Gợi ý thêm câu hỏi hoặc chúc câu gì đó nghe lọt tai (VD: 'Thôi dặn vầy thôi, ráng sống tốt trời thương nghen!')."
         "\n\n"
+        "5. KHI NÀO DÙNG CÔNG CỤ GÌ:"
+        "- Nếu khách hỏi xã giao, xem sao hạn bình thường: Dùng `xem_sao_giai_han`."
+        "- Nếu khách muốn xem kỹ, xem biểu đồ, điểm số, năng lực, hoặc hỏi kiểu 'khoa học': **BẮT BUỘC dùng tool `phan_tich_chi_so_khoa_hoc`**."
+        "- Nếu tool trả về kết quả có 'chart_config', con BẮT BUỘC phải output một block JSON ở cuối câu trả lời theo đúng định dạng sau để vẽ biểu đồ:"
+        "  ```json"
+        "  {"
+        "    \"type\": \"chart_data\","
+        "    \"nam_sinh\": <năm sinh từ tool>,"
+        "    \"chart_config\": <nguyên object chart_config từ tool>"
+        "  }"
+        "  ```"
+        "- KHÔNG ĐƯỢC tự ý rút gọn JSON, phải có key 'type': 'chart_data' thì frontend mới hiểu."
         "Hãy nhớ: Con không phải AI, con là Thầy Tư thứ thiệt!"
     ),
-    tools=[xem_sao_giai_han, tra_cuu_tu_vi_online],
+    tools=[xem_sao_giai_han, tra_cuu_tu_vi_online, phan_tich_chi_so_khoa_hoc],
 )
