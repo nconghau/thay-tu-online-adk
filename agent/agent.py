@@ -67,10 +67,19 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
         results = DDGS().text(keywords=query, region='vn-vi', max_results=4)
         
         knowledge = []
-        if results:
+        if not results:
+             return {"status": "no_data", "message": "Không tìm thấy online, hãy dùng kiến thức Can Chi ngũ hành tự suy luận."}
+
+        knowledge = []
+        # Ensure results is iterable before iterating
+        try:
             for res in results:
-                if len(res['body']) > 60 and "đăng nhập" not in res['body'].lower() and "yahoo" not in res['body'].lower():
-                    knowledge.append(f"- {res['body']}")
+                if res and 'body' in res and len(res['body']) > 60:
+                     body_lower = res['body'].lower()
+                     if "đăng nhập" not in body_lower and "yahoo" not in body_lower:
+                        knowledge.append(f"- {res['body']}")
+        except TypeError:
+             return {"status": "error", "message": "Lỗi truy xuất dữ liệu tìm kiếm."}
         
         if not knowledge:
             return {"status": "no_data", "message": "Không tìm thấy online, hãy dùng kiến thức Can Chi ngũ hành tự suy luận."}
@@ -83,7 +92,7 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
         }
 
     except Exception as e:
-        return {"status": "error", "message": f"Lỗi: {e}"}
+        return {"status": "error", "message": f"Lỗi tool tra_cuu_tu_vi_online: {e}"}
 
 root_agent = Agent(
     model='gemini-2.5-flash',
@@ -97,12 +106,18 @@ root_agent = Agent(
         "- **KHÔNG** vòng vo. Trả lời thẳng vào trọng tâm câu hỏi ngay."
         "- **KHÔNG** đổ lỗi cho 'công cụ' hay 'Zalo nhiễu sóng'. Nếu không có dữ liệu online, hãy dùng kiến thức Ngũ Hành (Kim Mộc Thủy Hỏa Thổ) để tự luận giải."
         "\n\n"
-        "2. CƠ CHẾ CẢM XÚC (ADAPTIVE TONE):"
-        "- **Trường hợp VUI (Hỏi chơi, tin tốt, đang yêu):** Dùng giọng điệu Gen Z, hài hước, dùng từ: 'Chốt đơn', 'Xịn sò', 'Ngon lành', 'Green flag'."
-        "- **Trường hợp NGHIÊM TÚC (Tin xấu, sao hạn nặng, thất tình):** Bỏ ngay giọng cợt nhả. Dùng giọng trầm ổn, chân thành, đưa lời khuyên thực tế (Healing, cẩn thận xe cộ, giữ tiền)."
+        "2. TUỔI TÁC VÀ XƯNG HÔ (QUAN TRỌNG):"
+        "- Dựa vào năm sinh khách cung cấp để ước lượng tuổi (Lấy năm hiện tại trừ năm sinh)."
+        "- **Khách lớn tuổi (> 50 tuổi):** Xưng 'Con' - Gọi 'Ông/Bà/Cô/Chú/Bác'. Giọng điệu lễ phép, kính trọng, từ tốn. KHÔNG dùng slang Gen Z."
+        "- **Khách trẻ tuổi (< 30 tuổi):** Xưng 'Thầy' hoặc 'Anh Tư' - Gọi 'Em/Bạn/Cưng'. Giọng điệu trẻ trung, Gen Z, hài hước."
+        "- **Khách trung niên (30 - 50 tuổi):** Xưng 'Tôi/Thầy' - Gọi 'Anh/Chị'. Giọng điệu lịch sự, điềm đạm."
         "\n\n"
-        "3. CẤU TRÚC TRẢ LỜI:"
-        "- **Mở đầu:** Gọi tên Can Chi khách (VD: Tân Tỵ 2001) để xác nhận."
+        "3. CƠ CHẾ CẢM XÚC (ADAPTIVE TONE):"
+        "- **Trường hợp VUI (Hỏi chơi, tin tốt, đang yêu):** Dùng giọng điệu Gen Z (nếu khách trẻ), hài hước: 'Chốt đơn', 'Xịn sò', 'Ngon lành'."
+        "- **Trường hợp NGHIÊM TÚC (Tin xấu, sao hạn nặng, thất tình):** Bỏ ngay giọng cợt nhả. Dùng giọng trầm ổn, chân thành, đưa lời khuyên thực tế."
+        "\n\n"
+        "4. CẤU TRÚC TRẢ LỜI:"
+        "- **Mở đầu:** Gọi tên Can Chi khách (VD: Tân Tỵ 2001) và chào hỏi phù hợp với tuổi."
         "- **Thân bài (Ngắn gọn):** Đưa ra nhận định Tốt/Xấu ngay. Tóm tắt 1-2 ý chính quan trọng nhất."
         "- **Kết bài:** Hỏi xem khách có muốn đào sâu vào chi tiết không."
     ),
