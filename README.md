@@ -12,35 +12,36 @@
 
 ## ✨ Tính Năng Nổi Bật
 
-### 1. ☯️ Gieo Quẻ & Tư Vấn Tâm Linh (AI Persona)
-*   Trò chuyện tự nhiên với persona "Ông già Nam Bộ".
-*   Giải đáp thắc mắc về vận hạn, tình duyên, gia đạo, công việc.
-*   Phong cách hài hước, thân thiện nhưng vẫn giữ được sự "linh thiêng".
+### 1. 🌸 Tình Duyên & 🧧 Tài Lộc (Tư Vấn)
+*   Chuyên trị các ca "ế lâu năm", tình duyên lận đận.
+*   Dự đoán tài chính, cơ hội làm ăn, vận may (Lì xì đỏ).
+*   Phong cách "Thầy Tư" chân chất, phán câu nào "thấm" câu đó.
 
-### 2. � Lá Số Tử Vi Khoa Học
+### 2. 🕯️ Vận Hạn & 🎍 Tổng Quát
+*   Soi vận hạn (Tam Tai, Thái Tuế...) để biết đường tránh né (Ngọn nến soi đường).
+*   Xem tổng quan năm mới, định hướng công việc và cuộc sống.
+
+### 3. ☯️ Lá Số Tử Vi Khoa Học
 *   Tự động lập và phân tích biểu đồ **Radar Chart** 5 phương diện:
     *   Thân Mệnh (Sức khỏe, bản lĩnh)
     *   Tài Lộc (Tiền bạc)
     *   Quan Lộc (Sự nghiệp)
     *   Tình Duyên (Gia đạo)
     *   Phúc Đức (May mắn)
-*   Thuật toán tính toán dựa trên **Can Chi**, **Ngũ Hành Nạp Âm** và các **Sao chiếu mệnh** thực tế (không random).
+*   Thuật toán "Chính Phái": Tính toán dựa trên **Can Chi**, **Ngũ Hành**, **Sao Chiếu Mệnh** (không random).
 
-### 3. 🔢 Thần Số Học (Numerology)
-*   Tính toán chuẩn **Pythagoras**.
-*   Các chỉ số chi tiết:
-    *   **Số Chủ Đạo (Life Path)**: Đường đời và sứ mệnh.
-    *   **Số Thái Độ**: Cách phản ứng với thế giới.
-    *   **Năm Cá Nhân**: Dự báo vận hạn từng năm.
+### 4. �️ Số Chủ Đạo & 🔢 Thần Số Học
+*   **Số Chủ Đạo (Life Path)**: Tìm ra con số đường đời và sứ mệnh (Chuẩn Pythagoras).
+*   **Hồ Sơ Thần Số**: Luận giải sâu về Năm Cá Nhân, Số Thái Độ.
 
-### 4. 🌌 Cung Hoàng Đạo (Zodiac)
-*   Tra cứu thông tin 12 chòm sao phương Tây (Western Zodiac).
-*   Cung cấp dữ liệu chi tiết về: Nguyên tố, Sao chiếu mệnh, Tính cách, Hợp/Khắc.
+### 5. 🌌 Cung Hoàng Đạo (Zodiac)
+*   Tra cứu chi tiết 12 chòm sao phương Tây (Western Zodiac).
+*   Thông tin đầy đủ: Nguyên tố, Sao chủ quản, Tính cách, Hợp/Khắc.
 
-### 5. 🛡️ Bảo Mật & An Toàn
-*   **Chống Spam**: Giới hạn tần suất 20 câu hỏi/phút (Rate Limiting).
-*   **Bảo vệ dữ liệu**: Input validation chống tấn công, ẩn API Keys.
-*   **Riêng tư**: Không lưu trữ thông tin cá nhân lâu dài.
+### 6. 🛡️ Bảo Mật & An Toàn
+*   **Chống Spam**: Rate Limit 20 câu/phút.
+*   **An Toàn**: Input validation, ẩn API Keys.
+*   **Riêng Tư**: Không lưu data người dùng.
 
 ---
 
