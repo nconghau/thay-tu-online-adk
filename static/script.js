@@ -13,6 +13,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // chatForm.dispatchEvent(new Event('submit'));
     }
 
+    // Randomize Chips Order
+    function shuffleChips() {
+        const chipsContainer = document.getElementById('suggestionChips');
+        if (chipsContainer) {
+            const chips = Array.from(chipsContainer.children);
+            chips.sort(() => Math.random() - 0.5);
+            chips.forEach(chip => chipsContainer.appendChild(chip));
+        }
+    }
+    shuffleChips();
+
     function addMessage(content, isUser) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;

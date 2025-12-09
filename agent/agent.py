@@ -4,6 +4,9 @@ from duckduckgo_search import DDGS
 from google.adk.agents.llm_agent import Agent
 import json
 from .tuvi_metrics import TuViMetrics
+from .feature_life_path import tinh_con_so_chu_dao
+from .feature_zodiac import xem_cung_hoang_dao
+from .feature_numerology import luan_giai_than_so_hoc
 
 def _chuan_hoa_nam_sinh(text_input: str) -> int:
     text = str(text_input).lower().strip()
@@ -35,7 +38,17 @@ def _chuan_hoa_nam_sinh(text_input: str) -> int:
             return 1900 + val if val > 40 else 2000 + val
             
     return None
+    return None
 
+def _chuan_hoa_ngay_sinh(text_input: str) -> str:
+    """
+    Trích xuất ngày sinh đầy đủ dd/mm/yyyy từ input.
+    """
+    text = str(text_input).lower().strip()
+    match = re.search(r'\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})\b', text)
+    if match:
+        return f"{match.group(1)}/{match.group(2)}/{match.group(3)}"
+    return None
 def _tinh_can_chi(nam_sinh: int) -> str:
     can = ["Canh", "Tân", "Nhâm", "Quý", "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ"]
     chi = ["Thân", "Dậu", "Tuất", "Hợi", "Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi"]
@@ -144,6 +157,26 @@ def phan_tich_chi_so_khoa_hoc(nam_sinh_input: str, gioi_tinh: str = "nam") -> di
     except Exception as e:
         return {"status": "error", "message": f"Máy tính của thầy bị nóng quá, tính chưa ra. Lỗi: {str(e)}. Con thử lại sau nghen!"}
 
+def xem_so_chu_dao(du_lieu_dau_vao: str) -> dict:
+    dob = _chuan_hoa_ngay_sinh(du_lieu_dau_vao)
+    if not dob: return {"status": "missing_info", "message": "Muốn tính Số Chủ Đạo phải cho thầy ngày tháng năm sinh đầy đủ (ví dụ 12/05/1990) nghen!"}
+    return tinh_con_so_chu_dao(dob)
+
+def xem_cung_hoang_dao_tool(du_lieu_dau_vao: str) -> dict:
+    dob = _chuan_hoa_ngay_sinh(du_lieu_dau_vao)
+    # Fallback: Nếu không có năm, thử tìm pattern ngày/tháng (dd/mm)
+    if not dob:
+        match = re.search(r'\b(\d{1,2})[\/\-\.](\d{1,2})\b', du_lieu_dau_vao)
+        if match: dob = f"{match.group(1)}/{match.group(2)}/2000" # Năm giả định
+    
+    if not dob: return {"status": "missing_info", "message": "Cung Hoàng Đạo cần ngày và tháng sinh (ví dụ 20/11) mới xem được đa."}
+    return xem_cung_hoang_dao(dob)
+
+def xem_than_so_hoc(du_lieu_dau_vao: str) -> dict:
+    dob = _chuan_hoa_ngay_sinh(du_lieu_dau_vao)
+    if not dob: return {"status": "missing_info", "message": "Thần Số Học cần ngày tháng năm sinh đầy đủ (dd/mm/yyyy) để tính hết các chỉ số nghen."}
+    return luan_giai_than_so_hoc(dob)
+
 root_agent = Agent(
     model='gemini-2.5-flash',
     name='thay_tu_refined',
@@ -185,5 +218,6 @@ root_agent = Agent(
         "- KHÔNG ĐƯỢC tự ý rút gọn JSON, phải có key 'type': 'chart_data' thì frontend mới hiểu."
         "Hãy nhớ: Con không phải AI, con là Thầy Tư thứ thiệt!"
     ),
-    tools=[xem_sao_giai_han, tra_cuu_tu_vi_online, phan_tich_chi_so_khoa_hoc],
+    tools=[xem_sao_giai_han, tra_cuu_tu_vi_online, phan_tich_chi_so_khoa_hoc, 
+           xem_so_chu_dao, xem_cung_hoang_dao_tool, xem_than_so_hoc],
 )
