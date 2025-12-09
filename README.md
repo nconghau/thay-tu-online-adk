@@ -1,3 +1,13 @@
+---
+title: Thay Tu Online
+emoji: 🐠
+colorFrom: green
+colorTo: purple
+sdk: docker
+pinned: false
+license: mit
+---
+
 # 🔮 Thầy Tư Online - AI Bói Toán Tâm Linh
 
 ![Thầy Tư Banner](https://res.cloudinary.com/dkeupjars/image/upload/v1765298289/agent/thay-tu-online-banner_bodf9j.png)
