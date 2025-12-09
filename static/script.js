@@ -64,8 +64,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setLoading(isLoading) {
-        if (sendBtn) sendBtn.disabled = isLoading;
         if (userInput) userInput.disabled = isLoading;
+        if (sendBtn) {
+            sendBtn.disabled = isLoading;
+            if (isLoading) {
+                sendBtn.innerHTML = '<i class="fas fa-yin-yang fa-spin"></i>';
+            } else {
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            }
+        }
     }
 
     async function sendMessage(message) {
