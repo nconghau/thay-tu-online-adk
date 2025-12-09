@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from google.adk.memory import InMemoryMemoryService
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.apps import App
+from google.adk.apps.app import EventsCompactionConfig
+from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
+from google.adk.models import Gemini
 from google.genai import types
 
 load_dotenv()
@@ -15,6 +19,7 @@ app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 from agent.agent import root_agent
 
+# Configure Session/Memory Services (Keep these global as they are storage)
 session_service = InMemorySessionService()
 memory_service = InMemoryMemoryService()
 
@@ -37,9 +42,26 @@ async def get_or_create_session_async(user_id: str):
     )
 
 async def run_agent_async(user_message: str, user_id: str):
+    # Initialize components inside the request loop to avoid Event Loop closed errors
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    llm_client = Gemini(model="gemini-2.5-flash", api_key=api_key)
+    
+    summarizer = LlmEventSummarizer(llm=llm_client)
+    
+    compaction_config = EventsCompactionConfig(
+        summarizer=summarizer,
+        compaction_interval=5,
+        overlap_size=2
+    )
+
+    adk_app = App(
+        name="thay_tu_app",
+        root_agent=root_agent,
+        events_compaction_config=compaction_config
+    )
+
     runner = Runner(
-        agent=root_agent,
-        app_name="thay_tu_app",
+        app=adk_app,
         session_service=session_service,
         memory_service=memory_service
     )
@@ -64,20 +86,14 @@ async def run_agent_async(user_message: str, user_id: str):
     
     return response_text
 
-def run_agent(user_message: str, user_id: str):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(run_agent_async(user_message, user_id))
-    finally:
-        loop.close()
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/ask', methods=['POST'])
-def ask():
+async def ask():
     try:
         data = request.get_json()
         user_message = data.get('message', '')
@@ -90,7 +106,7 @@ def ask():
             user_id = str(uuid.uuid4())
             session['user_id'] = user_id
         
-        response = run_agent(user_message, user_id)
+        response = await run_agent_async(user_message, user_id)
         
         if not response:
             response = "Xin lỗi, thầy chưa thể trả lời lúc này. Bạn thử hỏi lại nhé!"

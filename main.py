@@ -12,4 +12,4 @@ if __name__ == "__main__":
 # python app.py
 
 # docker-compose up --build -d
-# git push space main   
+# git push -f origin main && git push -f space main 
