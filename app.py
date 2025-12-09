@@ -3,6 +3,7 @@ import asyncio
 import uuid
 from flask import Flask, render_template, request, jsonify, session
 from dotenv import load_dotenv
+from google.adk.memory import InMemoryMemoryService
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -15,6 +16,7 @@ app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 from agent.agent import root_agent
 
 session_service = InMemorySessionService()
+memory_service = InMemoryMemoryService()
 
 async def get_or_create_session_async(user_id: str):
     try:
@@ -38,7 +40,8 @@ async def run_agent_async(user_message: str, user_id: str):
     runner = Runner(
         agent=root_agent,
         app_name="thay_tu_app",
-        session_service=session_service
+        session_service=session_service,
+        memory_service=memory_service
     )
     
     adk_session = await get_or_create_session_async(user_id)
