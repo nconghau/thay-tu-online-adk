@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             hideTypingIndicator();
-            addMessage('Mạng mẽo cà chớn quá, bậu đợi xíu rồi hỏi lại nghen!', false);
+            addMessage('Mạng mẽo cà chớn quá, con đợi xíu rồi hỏi lại nghen!', false);
             console.error('Error:', error);
         } finally {
             setLoading(false);
@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <img src="https://res.cloudinary.com/dkeupjars/image/upload/v1765254047/agent/thay-tu-avatar-01_vju3dt.png" alt="Thầy Tư">
                     </div>
                     <div class="message-content">
-                        Hello bậu! Thầy Tư đã quay lại nè.<br>
-                        Bậu muốn coi quẻ mới hông? Cho Tui biết <strong>Năm Sinh</strong> với <strong>Giới Tính</strong> đi.
+                        Hello con! Thầy Tư đã quay lại nè.<br>
+                        Con muốn coi quẻ mới hông? Cho Tui biết <strong>Năm Sinh</strong> với <strong>Giới Tính</strong> đi.
                     </div>
                 </div>
             `;

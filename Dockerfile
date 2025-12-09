@@ -26,4 +26,4 @@ EXPOSE 7860
 # Dùng Gunicorn để chạy App. 
 # -b 0.0.0.0:7860: Bind vào port 7860
 # app:app : Tìm biến 'app' trong file 'app.py'
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app", "--timeout", "120"]
+CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app", "--workers", "2", "--threads", "4", "--timeout", "120"]

@@ -5,17 +5,33 @@ from google.adk.agents.llm_agent import Agent
 
 def _chuan_hoa_nam_sinh(text_input: str) -> int:
     text = str(text_input).lower().strip()
+    current_year = datetime.datetime.now().year
+    
+    # Case 1: Nhập năm rõ ràng (1990, 2005)
     match_4 = re.search(r'\b(19|20)\d{2}\b', text)
     if match_4: return int(match_4.group(0))
+    
+    # Case 2: Nhập kiểu Gen Z (2k1, 2k)
     match_2k = re.search(r'\b2k(\d{0,1})\b', text)
     if match_2k:
         suffix = match_2k.group(1)
         return 2000 if suffix == "" else 2000 + int(suffix)
+    
+    # Case 3: Nhập tuổi (VD: "Con 30 tuổi", "tui ba mươi tuổi")
+    # Tìm số đứng trước chữ "tuổi"
+    match_tuoi = re.search(r'(\d{1,3})\s*(tuổi|t)', text)
+    if match_tuoi:
+        tuoi = int(match_tuoi.group(1))
+        if 0 < tuoi < 120:
+            return current_year - tuoi + 1 # Tuổi mụ thường tính +1, nhưng tính năm sinh thì trừ thẳng
+            
+    # Case 4: Nhập 2 số cuối (88, 92)
     match_2 = re.search(r'\b\d{2}\b', text)
     if match_2:
         val = int(match_2.group(0))
-        if 12 < val <= 99:
+        if 10 < val <= 99:
             return 1900 + val if val > 40 else 2000 + val
+            
     return None
 
 def _tinh_can_chi(nam_sinh: int) -> str:
@@ -40,7 +56,7 @@ def _tinh_sao_han(nam_sinh: int, gioi_tinh: str) -> dict:
 
 def xem_sao_giai_han(du_lieu_dau_vao: str, gioi_tinh: str = "nam") -> dict:
     ns = _chuan_hoa_nam_sinh(du_lieu_dau_vao)
-    if ns is None: return {"status": "missing_info", "message": "Thiếu năm sinh."}
+    if ns is None: return {"status": "missing_info", "message": "Thầy chưa tính ra năm sinh. Con nói rõ năm sinh hoặc tuổi đi?"}
     
     can_chi = _tinh_can_chi(ns)
     ket_qua = _tinh_sao_han(ns, gioi_tinh)
@@ -50,7 +66,8 @@ def xem_sao_giai_han(du_lieu_dau_vao: str, gioi_tinh: str = "nam") -> dict:
         "nam_sinh": ns,
         "can_chi": can_chi,
         "sao_han": f"Sao {ket_qua['sao']}",
-        "loi_khuyen_goc": "Dựa vào sao này để phán tốt xấu."
+        "tuoi_mu": ket_qua['tuoi_mu'],
+        "instruction": "Dựa vào sao này để phán. Sao tốt (Mộc Đức, Thái Dương, Thái Âm) thì chúc mừng. Sao xấu (La Hầu, Kế Đô, Thái Bạch) thì dặn dò cẩn thận."
     }
 
 def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -> dict:
@@ -60,39 +77,38 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
     try:
         can_chi = _tinh_can_chi(ns)
         current_year = datetime.datetime.now().year + 1
-        
         query = f"Tử vi tuổi {can_chi} sinh năm {ns} năm {current_year} {linh_vuc} luận giải chi tiết"
         print(f"\n[SYSTEM] Tra cứu: '{query}'")
 
-        results = DDGS().text(keywords=query, region='vn-vi', max_results=4)
-        
-        knowledge = []
-        if not results:
-             return {"status": "no_data", "message": "Không tìm thấy online, hãy dùng kiến thức Can Chi ngũ hành tự suy luận."}
+        # Fallback an toàn: Nếu search lỗi thì trả về hướng dẫn để AI tự chém
+        try:
+            results = DDGS().text(keywords=query, region='vn-vi', max_results=3)
+        except Exception as search_err:
+            print(f"[WARN] Search error: {search_err}")
+            results = None
 
         knowledge = []
-        # Ensure results is iterable before iterating
-        try:
+        if results:
             for res in results:
-                if res and 'body' in res and len(res['body']) > 60:
-                     body_lower = res['body'].lower()
-                     if "đăng nhập" not in body_lower and "yahoo" not in body_lower:
-                        knowledge.append(f"- {res['body']}")
-        except TypeError:
-             return {"status": "error", "message": "Lỗi truy xuất dữ liệu tìm kiếm."}
+                if res and 'body' in res and len(res['body']) > 50:
+                     knowledge.append(f"- {res['body']}")
         
         if not knowledge:
-            return {"status": "no_data", "message": "Không tìm thấy online, hãy dùng kiến thức Can Chi ngũ hành tự suy luận."}
+            # RETURN FALLBACK (QUAN TRỌNG)
+            return {
+                "status": "fallback_internal",
+                "tuoi": can_chi,
+                "message": "Mạng bị chập chờn không tra được. Con hãy dùng kiến thức Ngũ Hành, Can Chi của mình để tự luận giải cho khách."
+            }
 
         return {
             "status": "success",
             "tuoi": can_chi,
-            "du_lieu_tu_vi": "\n".join(knowledge),
-            "instruction": "Phân tích dữ liệu này. Nếu tốt -> Vui vẻ. Nếu xấu -> Nghiêm túc, an ủi."
+            "du_lieu_tu_vi": "\n".join(knowledge)
         }
 
     except Exception as e:
-        return {"status": "error", "message": f"Lỗi tool tra_cuu_tu_vi_online: {e}"}
+        return {"status": "error", "message": f"Lỗi hệ thống: {e}"}
 
 root_agent = Agent(
     model='gemini-2.5-flash',
@@ -102,7 +118,7 @@ root_agent = Agent(
         "Con là 'Thầy Tư' - chuyên gia tử vi, thầy bói miệt vườn Nam Bộ."
         "\n\n"
         "1. PHONG CÁCH NGÔN NGỮ (MIỀN TÂY NAM BỘ):"
-        "- **Xưng hô:** Xưng là 'Tui' (hoặc 'Qua' nếu muốn ra vẻ lão làng), gọi khách là 'Bậu', 'Cưng', 'Chế', 'Hiền đệ', 'Con' (nếu khách nhỏ), hoặc 'Mình' (thân mật)."
+        "- **Xưng hô:** Xưng là 'Tui' (hoặc 'Qua' nếu muốn ra vẻ lão làng), gọi khách là 'Con', 'Cưng', 'Chế', 'Hiền đệ', 'Con' (nếu khách nhỏ), hoặc 'Mình' (thân mật)."
         "- **Từ ngữ đặc trưng:** 'Hông' (không), 'Nghen' (nhé), 'Đặng' (được), 'Mơi' (mai), 'Vầy nè', 'Sao trăng', 'Cà chớn', 'Xịn sò', 'Rầu thúi ruột'..."
         "- **Giọng điệu:** Dân dã, tưng tửng, hài hước, chân chất nhưng đôi lúc ra vẻ 'huyền bí' kiểu thầy bà."
         "\n\n"
@@ -113,7 +129,7 @@ root_agent = Agent(
         "- **Tuyệt đối KHÔNG:** Dùng từ ngữ quá sách vở, khô khan, hoặc quá 'công nghiệp' (robot). Không vòng vo tam quốc."
         "\n\n"
         "3. XỬ LÝ KHI KHÔNG CÓ DỮ LIỆU/LỖI:"
-        "- Đừng báo lỗi kỹ thuật (404, error). Hãy nói: 'Chà, mạng mẽo bữa nay nó cà chớn quá', 'Tổ đãi chưa tới nên hông thấy gì hết trơn', 'Thôi bậu hỏi câu khác đi'."
+        "- Đừng báo lỗi kỹ thuật (404, error). Hãy nói: 'Chà, mạng mẽo bữa nay nó cà chớn quá', 'Tổ đãi chưa tới nên hông thấy gì hết trơn', 'Thôi con hỏi câu khác đi'."
         "- Dùng kiến thức Ngũ Hành (Kim Mộc Thủy Hỏa Thổ) để 'chém gió' một cách có lý nếu không tra cứu được."
         "\n\n"
         "4. CẤU TRÚC TRẢ LỜI:"
