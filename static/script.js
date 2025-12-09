@@ -4,18 +4,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatMessages = document.getElementById('chatMessages');
     const sendBtn = document.getElementById('sendBtn');
     const resetBtn = document.getElementById('resetBtn');
-    const btnText = sendBtn.querySelector('.btn-text');
-    const btnLoading = sendBtn.querySelector('.btn-loading');
+
+    // Suggestion Chips handler
+    window.setInput = function(text) {
+        userInput.value = text;
+        userInput.focus();
+        // Optional: auto-send
+        // chatForm.dispatchEvent(new Event('submit'));
+    }
 
     function addMessage(content, isUser) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
         
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.innerHTML = formatMessage(content);
+        let innerHTML = '';
+        if (!isUser) {
+            innerHTML += `
+                <div class="avatar">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+                </div>
+            `;
+        }
+
+        innerHTML += `<div class="message-content">${formatMessage(content)}</div>`;
+        messageDiv.innerHTML = innerHTML;
         
-        messageDiv.appendChild(contentDiv);
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -31,10 +44,12 @@ document.addEventListener('DOMContentLoaded', function() {
         indicator.className = 'message bot-message';
         indicator.id = 'typingIndicator';
         indicator.innerHTML = `
-            <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div class="avatar">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+            </div>
+            <div class="message-content">
+                <i class="fas fa-pen-nib fa-spin-slow" style="font-size: 0.8rem; margin-right: 5px;"></i>
+                Thầy đang bấm quẻ...
             </div>
         `;
         chatMessages.appendChild(indicator);
@@ -49,10 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setLoading(isLoading) {
-        sendBtn.disabled = isLoading;
-        userInput.disabled = isLoading;
-        btnText.classList.toggle('d-none', isLoading);
-        btnLoading.classList.toggle('d-none', !isLoading);
+        if (sendBtn) sendBtn.disabled = isLoading;
+        if (userInput) userInput.disabled = isLoading;
     }
 
     async function sendMessage(message) {
@@ -79,10 +92,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             hideTypingIndicator();
-            addMessage('Không thể kết nối với server. Vui lòng thử lại!', false);
+            addMessage('Mạng mẽo cà chớn quá, bậu đợi xíu rồi hỏi lại nghen!', false);
             console.error('Error:', error);
         } finally {
             setLoading(false);
+            userInput.focus();
         }
     }
 
@@ -98,11 +112,19 @@ document.addEventListener('DOMContentLoaded', function() {
     resetBtn.addEventListener('click', async function() {
         try {
             await fetch('/reset', { method: 'POST' });
-            chatMessages.innerHTML = '';
-            addMessage(
-                'Chào bạn! Thầy Tư đây. Cho thầy biết <strong>năm sinh</strong> và <strong>giới tính</strong> của bạn, thầy sẽ luận giải tử vi cho bạn nghe nhé!<br><br>Ví dụ: "Em sinh năm 1995, nữ" hoặc "2k1 nam"',
-                false
-            );
+            chatMessages.innerHTML = `
+                <div class="message bot-message">
+                    <div class="avatar">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+                    </div>
+                    <div class="message-content">
+                        Hello bậu! Thầy Tư đã quay lại nè.<br>
+                        Bậu muốn coi quẻ mới hông? Cho Tui biết <strong>Năm Sinh</strong> với <strong>Giới Tính</strong> đi.
+                    </div>
+                </div>
+            `;
+            userInput.value = '';
+            userInput.focus();
         } catch (error) {
             console.error('Reset error:', error);
         }

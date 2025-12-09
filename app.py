@@ -98,7 +98,9 @@ def ask():
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Có lỗi xảy ra: {str(e)}'}), 500
+        # Return a friendly "Thầy Tư" style error message instead of the raw error
+        friendly_error = "Chà, thiên cơ lúc mờ lúc tỏ, hoặc là mạng mẽo nó cà chớn rồi. Bậu thông cảm hỏi lại dìa cái khác dùm Thầy nghen!"
+        return jsonify({'error': friendly_error}), 500
 
 @app.route('/health')
 def health():

@@ -1,60 +1,84 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thầy Tư - Tử Vi Online</title>
+    <title>Thầy Tư - Xem Bói Miền Tây</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="container">
-        <header class="text-center py-4">
-            <div class="logo-container">
-                <div class="yin-yang"></div>
-            </div>
-            <h1 class="title">Thầy Tư</h1>
-            <p class="subtitle">Chuyên gia Tử Vi Nam Bộ hiện đại</p>
-        </header>
 
-        <main class="chat-container">
-            <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">
-                    <div class="message-content">
-                        Chào bạn! Thầy Tư đây. Cho thầy biết <strong>năm sinh</strong> và <strong>giới tính</strong> của bạn, thầy sẽ luận giải tử vi cho bạn nghe nhé!
-                        <br><br>
-                        Ví dụ: "Em sinh năm 1995, nữ" hoặc "2k1 nam"
+<body>
+    <div class="main-wrapper">
+        <div class="container main-container">
+            <header class="text-center py-4 header-section">
+                <div class="logo-container">
+                    <div class="mystic-symbol">
+                        <i class="fas fa-yin-yang fa-spin-slow"></i>
                     </div>
                 </div>
-            </div>
+                <h1 class="title">Thầy Tư</h1>
+                <p class="subtitle">Thầy bói miệt vườn - Xem là ghiền</p>
+                <div class="divider">
+                    <span>✦</span>
+                </div>
+            </header>
 
-            <div class="input-container">
-                <form id="chatForm" class="d-flex gap-2">
-                    <input 
-                        type="text" 
-                        id="userInput" 
-                        class="form-control" 
-                        placeholder="Nhập năm sinh và giới tính của bạn..."
-                        autocomplete="off"
-                    >
-                    <button type="submit" class="btn btn-primary" id="sendBtn">
-                        <span class="btn-text">Gửi</span>
-                        <span class="btn-loading d-none">
-                            <span class="spinner-border spinner-border-sm"></span>
-                        </span>
-                    </button>
-                </form>
-                <button class="btn btn-outline-secondary btn-sm mt-2" id="resetBtn">
-                    Bắt đầu phiên mới
-                </button>
-            </div>
-        </main>
+            <main class="chat-wrapper">
+                <div class="chat-box">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message bot-message">
+                            <div class="avatar">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4"
+                                    alt="Thầy Tư">
+                            </div>
+                            <div class="message-content">
+                                Chào bậu! Tui là Thầy Tư đây.<br>
+                                Bữa nay rảnh rỗi, bậu muốn coi gì thì cho Tui biết <strong>Năm Sinh</strong> với
+                                <strong>Giới Tính</strong> nghen.
+                                <br><br>
+                                <em>Ví dụ: "Tui sinh năm 95, nữ" hoặc "2k1 nam mạng"</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <footer class="text-center py-3">
-            <small class="text-muted">Powered by Google ADK & Gemini</small>
-        </footer>
+                <div class="suggestion-chips" id="suggestionChips">
+                    <button class="chip" onclick="setInput('Coi giùm con đường tình duyên năm nay')">💖 Tình
+                        duyên</button>
+                    <button class="chip" onclick="setInput('Năm nay làm ăn có khấm khá hông thầy?')">💰 Tài lộc</button>
+                    <button class="chip" onclick="setInput('Tháng này có hạn gì hông thầy?')">⚠️ Vận hạn</button>
+                    <button class="chip" onclick="setInput('Coi tổng quát năm nay cho con')">🔮 Tổng quát</button>
+                </div>
+
+                <div class="input-area">
+                    <form id="chatForm" class="d-flex gap-2 align-items-center">
+                        <input type="text" id="userInput" class="form-control" placeholder="Nhập ngày tháng năm sinh..."
+                            autocomplete="off">
+                        <button type="submit" class="btn btn-send" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <div class="text-center mt-2">
+                        <button class="btn-reset" id="resetBtn">
+                            <i class="fas fa-redo-alt"></i> Coi quẻ mới
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="text-center py-3">
+                <small class="text-muted">Thầy Tư @ 2024 - Bấm quẻ online</small>
+            </footer>
+        </div>
     </div>
 
     <script src="/static/script.js"></script>
 </body>
+
 </html>
