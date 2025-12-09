@@ -30,7 +30,7 @@
     *   Phúc Đức (May mắn)
 *   Thuật toán "Chính Phái": Tính toán dựa trên **Can Chi**, **Ngũ Hành**, **Sao Chiếu Mệnh** (không random).
 
-### 4. �️ Số Chủ Đạo & 🔢 Thần Số Học
+### 4. 🔢 Số Chủ Đạo & Thần Số Học
 *   **Số Chủ Đạo (Life Path)**: Tìm ra con số đường đời và sứ mệnh (Chuẩn Pythagoras).
 *   **Hồ Sơ Thần Số**: Luận giải sâu về Năm Cá Nhân, Số Thái Độ.
 
@@ -79,7 +79,6 @@
     ```env
     GOOGLE_API_KEY=your_gemini_api_key_here
     SESSION_SECRET=your_secret_key
-    FLASK_DEBUG=true
     ```
 
 4.  **Chạy ứng dụng**:

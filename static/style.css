@@ -247,6 +247,18 @@ footer small {
   letter-spacing: 1px;
 }
 
+.footer-link {
+  color: rgba(245, 230, 211, 0.4);
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s;
+  vertical-align: middle;
+}
+
+.footer-link:hover {
+  color: var(--gold);
+}
+
 /* Animations */
 @keyframes pulse-glow {
   0% {
