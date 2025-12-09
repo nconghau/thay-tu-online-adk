@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isUser) {
             innerHTML += `
                 <div class="avatar">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+                    <img src="https://res.cloudinary.com/dkeupjars/image/upload/v1765254047/agent/thay-tu-avatar-01_vju3dt.png" alt="Thầy Tư">
                 </div>
             `;
         }
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         indicator.id = 'typingIndicator';
         indicator.innerHTML = `
             <div class="avatar">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+                <img src="https://res.cloudinary.com/dkeupjars/image/upload/v1765254047/agent/thay-tu-avatar-01_vju3dt.png" alt="Thầy Tư">
             </div>
             <div class="message-content">
                 <i class="fas fa-pen-nib fa-spin-slow" style="font-size: 0.8rem; margin-right: 5px;"></i>
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.innerHTML = `
                 <div class="message bot-message">
                     <div class="avatar">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ThayTu&backgroundColor=b6e3f4" alt="Thầy Tư">
+                        <img src="https://res.cloudinary.com/dkeupjars/image/upload/v1765254047/agent/thay-tu-avatar-01_vju3dt.png" alt="Thầy Tư">
                     </div>
                     <div class="message-content">
                         Hello bậu! Thầy Tư đã quay lại nè.<br>
