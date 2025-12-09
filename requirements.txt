@@ -1,7 +1,10 @@
 # --- Core Framework ---
 flask
 python-dotenv
+flask
+python-dotenv
 gunicorn
+Flask-Limiter
 
 # --- Google GenAI & Search ---
 duckduckgo-search

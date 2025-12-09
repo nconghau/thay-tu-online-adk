@@ -1,7 +1,9 @@
 import os
 import asyncio
 import uuid
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, make_response
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from google.adk.memory import InMemoryMemoryService
 from google.adk.runners import Runner
@@ -16,6 +18,14 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+
+# Security: Rate Limiting
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per day", "30 per hour"],
+    storage_uri="memory://"
+)
 
 from agent.agent import root_agent
 
@@ -93,6 +103,7 @@ def index():
     return render_template('index.html')
 
 @app.route('/ask', methods=['POST'])
+@limiter.limit("20 per minute") # Anti-spam: 20 msg/min per IP
 async def ask():
     try:
         data = request.get_json()
@@ -100,6 +111,13 @@ async def ask():
         
         if not user_message:
             return jsonify({'error': 'Vui lòng nhập câu hỏi'}), 400
+        
+        # Security: Input Validation
+        if len(user_message) > 500:
+            return jsonify({'error': 'Câu hỏi dài quá, thầy đọc hông kịp. Con tóm tắt lại dưới 500 chữ nghen!'}), 400
+        
+        # Security: Basic XSS/Injection sanitize (Mock)
+        user_message = user_message.strip()
         
         user_id = session.get('user_id')
         if not user_id:
@@ -111,7 +129,11 @@ async def ask():
         if not response:
             response = "Xin lỗi, thầy chưa thể trả lời lúc này. Bạn thử hỏi lại nhé!"
         
-        return jsonify({'response': response})
+        resp = make_response(jsonify({'response': response}))
+        # Security Headers
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        return resp
     
     except Exception as e:
         print(f"Error: {e}")
