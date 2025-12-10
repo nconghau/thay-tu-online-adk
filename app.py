@@ -6,7 +6,7 @@ import logging
 import traceback
 import json
 import tempfile
-from flask import Flask, render_template, request, jsonify, session, make_response, g
+from flask import Flask, render_template, request, jsonify, session, make_response, g, has_request_context
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -40,13 +40,15 @@ limiter = Limiter(
 # --- Structured Logging Setup ---
 class ProjectPrefixFilter(logging.Filter):
     def filter(self, record):
-        prefix = "[thay-tu-online]"
-        if prefix not in str(record.msg):
-            record.msg = f"{prefix} {record.msg}"
-        # Also ensure JSON payload includes project if structured logging is active
-        # (This bit is tricky to enforce on third-party logs generically without a custom Formatter,
-        # but modifying msg is the most visible fix for console/text logs)
-        return True
+        try:
+            prefix = "[thay-tu-online]"
+            # Ensure msg is a string before checking/modifying to avoid errors with non-string objs
+            if hasattr(record, 'msg') and prefix not in str(record.msg):
+                record.msg = f"{prefix} {record.msg}"
+            return True
+        except Exception:
+            # If filtering fails, allow the log through untouched rather than crashing
+            return True
 
 # Use JSON logging if in Cloud, otherwise standard text
 class StructuredLogger:
@@ -83,54 +85,29 @@ class StructuredLogger:
 
     def log(self, level, message, **kwargs):
         """
-        Logs a structured event.
-        - level: 'info', 'warning', 'error'
-        - message: Human readable message
-        - kwargs: Extra data fields (e.g., duration, ip, query)
+        Logs a structured event safely.
         """
-        # Prefix is handled by Filter now, but we add project field for JSON query
-        # full_message = f"[thay-tu-online] {message}" # Filter does this
-        
-        # Inject trace_id/user_id from Flask context if available
-        payload = {"project": "thay-tu-online"}
-        if g:
-            if hasattr(g, 'trace_id'): payload['trace_id'] = g.trace_id
-            if hasattr(g, 'user_id'): payload['user_id'] = g.user_id
-        
-        payload.update(kwargs)
-        
-        # If using Cloud Logging, it handles JSON serialization automatically via payload
-        # But standard logger needs a message string.
-        # We'll rely on the Cloud Logging handler to pick up 'extra' or just log a JSON dump string.
-        
-        if self.cloud_logging:
-            # Cloud Logging library supports structured log via `json_fields` if using logger.log_struct
-            # But since we hooked into standard python logging, we pass extra dict.
-            # However, simpler for this demo: Log a JSON string so it parses nicely in Explorer
-            log_entry = json.dumps(payload, ensure_ascii=False)
-            getattr(self.logger, level)(log_entry)
-        else:
-            # Local dev: pretty print
-            # Msg is filtered, but here we print manually for StructuredLogger if needed?
-            # actually getattr(self.logger) goes to root handler -> filter applies.
-            # But wait, json.dumps(payload) is the MSG. Filter will prepend prefix to JSON string?
-            # That might break JSON parsing.
-            # Refinement: Only filter if msg is NOT json? Or keep prefix outside JSON?
+        try:
+            # Inject trace_id/user_id from Flask context safely
+            payload = {"project": "thay-tu-online"}
             
-            # Better approach: 
-            # We want the TEXT log to have [prefix].
-            # For JSON logs, we want jsonPayload.project = '...'
+            if has_request_context():
+                if hasattr(g, 'trace_id'): payload['trace_id'] = g.trace_id
+                if hasattr(g, 'user_id'): payload['user_id'] = g.user_id
             
-            # Since we dump JSON as the message content for Cloud Logging, pre-pending text breaks it being pure JSON.
-            # However, Cloud Logging treats string payloads as text unless structured.
-            # The previous approach (json.dumps) sends a TEXT payload that looks like JSON.
-            # If we want pure JSON struct in Explorer, we need `logger.log_struct` from the client, not standard logging.
-            # But `google.cloud.logging` handler intercepts standard logging.
+            payload.update(kwargs)
             
-            # Simple Fix for User's Request:
-            # They verified seeing JSON-like strings. They want prefix on ALL lines.
-            # If I prepend to JSON string, it's `[prefix] {"foo": "bar"}`. This is fine for text searching.
-            print(f"[{level.upper()}] [thay-tu-online] {message} | {kwargs}")
+            if self.cloud_logging:
+                log_entry = json.dumps(payload, ensure_ascii=False)
+                getattr(self.logger, level)(log_entry)
+            else:
+                # Local dev: pretty print
+                print(f"[{level.upper()}] [thay-tu-online] {message} | {kwargs}")
+                
+        except Exception as e:
+            # Fallback: Print simplified error to stderr, don't crash app
+            # Avoid using 'logger' here to prevent recursion loops
+            print(f"[LOGGING_ERROR] Failed to log event: {message}. Error: {e}")
 
 logger = StructuredLogger("thay_tu_app")
 
@@ -204,8 +181,8 @@ async def get_or_create_session_async(user_id: str):
 
 @retry(
     retry=retry_if_exception_type(ServerError),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
+    stop=stop_after_attempt(5), # Increased to 5 to handle frequent overloads
+    wait=wait_exponential(multiplier=2, min=2, max=30), # Slower backoff (2s, 4s, 8s...)
     reraise=True
 )
 async def run_agent_async(user_message: str, user_id: str):
@@ -217,7 +194,7 @@ async def run_agent_async(user_message: str, user_id: str):
     
     compaction_config = EventsCompactionConfig(
         summarizer=summarizer,
-        compaction_interval=20, # Increased from 5 to reduce server load
+        compaction_interval=50, # Increased to 50 to almost disable it during short sessions
         overlap_size=2
     )
 
