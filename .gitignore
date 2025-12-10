@@ -5,3 +5,5 @@ static/thay-tu-avatar-01.png
 venv/
 __pycache__/
 *.log
+.env.local
+
