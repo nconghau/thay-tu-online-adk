@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.setInput = function(text) {
         userInput.value = text;
         userInput.focus();
-        // Optional: auto-send
-        // chatForm.dispatchEvent(new Event('submit'));
+        // Reset height
+        userInput.style.height = 'auto';
+        userInput.style.height = userInput.scrollHeight + 'px';
     }
 
     // Randomize Chips Order
@@ -218,12 +219,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Auto-resize textarea
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if (this.value === '') {
+             this.style.height = ''; // Reset to css default
+        }
+    });
+
+    // Handle Enter to submit, Shift+Enter for newline
+    userInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Prevent default newline
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
     chatForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const message = userInput.value.trim();
         if (message) {
             sendMessage(message);
             userInput.value = '';
+            userInput.style.height = ''; // Reset height
         }
     });
 

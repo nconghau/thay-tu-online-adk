@@ -13,6 +13,8 @@ from google.adk.apps.app import EventsCompactionConfig
 from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
 from google.adk.models import Gemini
 from google.genai import types
+from google.genai.errors import ServerError
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 load_dotenv()
 
@@ -51,6 +53,12 @@ async def get_or_create_session_async(user_id: str):
         session_id=user_id
     )
 
+@retry(
+    retry=retry_if_exception_type(ServerError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True
+)
 async def run_agent_async(user_message: str, user_id: str):
     # Initialize components inside the request loop to avoid Event Loop closed errors
     api_key = os.environ.get("GOOGLE_API_KEY")
@@ -60,7 +68,7 @@ async def run_agent_async(user_message: str, user_id: str):
     
     compaction_config = EventsCompactionConfig(
         summarizer=summarizer,
-        compaction_interval=5,
+        compaction_interval=20, # Increased from 5 to reduce server load
         overlap_size=2
     )
 

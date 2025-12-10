@@ -219,6 +219,11 @@ body {
   color: var(--parchment);
   padding: 0.8rem 1.2rem;
   border-radius: 25px;
+  resize: none; /* Hide default resize handle */
+  overflow-y: hidden; /* Hide scrollbar initially */
+  min-height: 48px; /* Match previous input height */
+  max-height: 120px; /* Limit expansion */
+  line-height: 1.5;
 }
 
 .form-control:focus {
