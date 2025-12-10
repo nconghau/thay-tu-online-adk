@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, jsonify, session, make_respon
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
 from google.adk.memory import InMemoryMemoryService
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
@@ -55,6 +56,7 @@ class StructuredLogger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.INFO)
+        self.executor = ThreadPoolExecutor(max_workers=1) # Fire-and-forget worker
         
         # Check credentials
         self.cloud_logging = False
@@ -83,12 +85,23 @@ class StructuredLogger:
         for handler in logging.getLogger().handlers:
             handler.addFilter(ProjectPrefixFilter())
 
+    def _log_worker(self, level, payload_json, message_text):
+        """Background worker to perform the actual blocking I/O log call."""
+        try:
+            if self.cloud_logging:
+                getattr(self.logger, level)(payload_json)
+            else:
+                # Local dev: pretty print (errors/warnings visible)
+                 print(f"[{level.upper()}] [thay-tu-online] {message_text}")
+        except Exception as e:
+            print(f"[LOG_FAIL] {e}")
+
     def log(self, level, message, **kwargs):
         """
-        Logs a structured event safely.
+        Logs a structured event safely and asynchronously (Fire-and-Forget).
         """
         try:
-            # Inject trace_id/user_id from Flask context safely
+            # 1. Capture Context (Must be done in Main Thread)
             payload = {"project": "thay-tu-online"}
             
             if has_request_context():
@@ -97,17 +110,15 @@ class StructuredLogger:
             
             payload.update(kwargs)
             
-            if self.cloud_logging:
-                log_entry = json.dumps(payload, ensure_ascii=False)
-                getattr(self.logger, level)(log_entry)
-            else:
-                # Local dev: pretty print
-                print(f"[{level.upper()}] [thay-tu-online] {message} | {kwargs}")
+            # 2. Serialize Payload (Fast, in Main Thread to catch serialization errors early if needed, but safe to offload too)
+            # We do it here to pass string to worker
+            log_entry_json = json.dumps(payload, ensure_ascii=False)
+            
+            # 3. Offload to Background Thread
+            self.executor.submit(self._log_worker, level, log_entry_json, message)
                 
         except Exception as e:
-            # Fallback: Print simplified error to stderr, don't crash app
-            # Avoid using 'logger' here to prevent recursion loops
-            print(f"[LOGGING_ERROR] Failed to log event: {message}. Error: {e}")
+            print(f"[LOGGING_ERROR] Failed to submit log: {message}. Error: {e}")
 
 logger = StructuredLogger("thay_tu_app")
 
@@ -190,18 +201,19 @@ async def run_agent_async(user_message: str, user_id: str):
     api_key = os.environ.get("GOOGLE_API_KEY")
     llm_client = Gemini(model="gemini-2.5-flash", api_key=api_key)
     
+    # Performance Optimization: Re-enabled with safe interval
     summarizer = LlmEventSummarizer(llm=llm_client)
     
     compaction_config = EventsCompactionConfig(
         summarizer=summarizer,
-        compaction_interval=50, # Increased to 50 to almost disable it during short sessions
+        compaction_interval=50, # High interval to reduce load
         overlap_size=2
     )
-
+    
     adk_app = App(
         name="thay_tu_app",
         root_agent=root_agent,
-        events_compaction_config=compaction_config
+        events_compaction_config=compaction_config 
     )
 
     runner = Runner(

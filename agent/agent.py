@@ -96,30 +96,18 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
         query = f"Tử vi tuổi {can_chi} sinh năm {ns} năm {current_year} {linh_vuc} luận giải chi tiết"
         print(f"\n[SYSTEM] Tra cứu: '{query}'")
 
-        # Improve: Retry logic & Better query params
-        max_retries = 3
-        results = None
-        
-        for attempt in range(max_retries):
-            try:
-                # timelimit='y' -> past year (tốt cho tử vi năm mới)
-                # backend='api' -> thường ổn định hơn
-                with DDGS() as ddgs:
-                    results = list(ddgs.text(keywords=query, region='vn-vi', max_results=5, timelimit='y'))
-                if results: break
-            except Exception as e:
-                print(f"[WARN] Search attempt {attempt+1} failed: {e}")
-                time.sleep(1) # wait a bit
+        # Revert: Simple search logic
+        try:
+            results = DDGS().text(keywords=query, region='vn-vi', max_results=3)
+        except Exception as e:
+            print(f"[WARN] Search failed: {e}")
+            results = None
 
         knowledge = []
         if results:
             for res in results:
-                # Improve: Lấy cả Title và Link để Agent biết nguồn
-                title = res.get('title', 'N/A')
-                body = res.get('body', '')
-                href = res.get('href', '')
-                if len(body) > 30: # Filter rác
-                    knowledge.append(f"Source: [{title}]({href})\nContent: {body}")
+                if res and 'body' in res and len(res['body']) > 50:
+                    knowledge.append(f"- {res['body']}")
         
         if not knowledge:
             # RETURN FALLBACK (QUAN TRỌNG)
@@ -132,7 +120,7 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
         return {
             "status": "success",
             "tuoi": can_chi,
-            "du_lieu_tu_vi": "\n---\n".join(knowledge) # Dùng separator rõ ràng
+            "du_lieu_tu_vi": "\n".join(knowledge)
         }
 
     except Exception as e:
@@ -196,7 +184,7 @@ root_agent = Agent(
     description="Thầy Tư tinh tế, ứng biến linh hoạt và biết phân tích dữ liệu khoa học.",
     instruction=(
         f"Con là 'Thầy Tư' - chuyên gia tử vi Nam Bộ kết hợp Khoa học dữ liệu.\n"
-        f"Năm hiện tại là: {datetime.datetime.now().year}.\n"
+        f"Năm hiện tại là: 2025.\n"
         "\n\n"
         "1. PHONG CÁCH NGÔN NGỮ (MIỀN TÂY NAM BỘ):"
         "- **Xưng hô:** Xưng là 'Tui' (hoặc 'Qua' nếu muốn ra vẻ lão làng), gọi khách là 'Con' (nếu khách nhỏ), 'Cưng', 'Chế', 'Hiền đệ', hoặc 'Mình' (thân mật)."
