@@ -10,6 +10,7 @@ Flask-Limiter
 duckduckgo-search
 google-genai>=0.2.0
 google-generativeai>=0.8.0
+google-cloud-logging
 
 # --- Google ADK ---
 google-adk>=0.4.0

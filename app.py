@@ -1,7 +1,9 @@
 import os
 import asyncio
 import uuid
-from flask import Flask, render_template, request, jsonify, session, make_response
+import time
+import logging
+from flask import Flask, render_template, request, jsonify, session, make_response, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -15,6 +17,9 @@ from google.adk.models import Gemini
 from google.genai import types
 from google.genai.errors import ServerError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import google.cloud.logging
+from google.cloud.logging.handlers import CloudLoggingHandler
+from agent.agent import root_agent
 
 load_dotenv()
 
@@ -29,7 +34,65 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-from agent.agent import root_agent
+
+# Setup basic logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("thay_tu_app")
+
+import json
+import tempfile
+
+try:
+    google_creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+    if google_creds_json:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_cred_file:
+            temp_cred_file.write(google_creds_json)
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_file.name
+            logger.info(f"🔑 Loaded Google Credentials from env var to {temp_cred_file.name}")
+    key_file = "nconghau-demo-devfest-c99ef2b83344.json"
+    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and os.path.exists(key_file):
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_file
+        logger.info(f"🔑 Using Local Service Account Key: {key_file}")
+
+    log_client = google.cloud.logging.Client()
+    log_client.setup_logging()
+    logger.info("✅ Google Cloud Logging connected successfully.")
+except Exception as e:
+    logger.warning(f"⚠️ Google Cloud Logging not connected (Local mode only): {e}")
+
+# Request Logging Middleware
+@app.before_request
+def start_timer():
+    g.start_time = time.time()
+
+@app.after_request
+def log_request(response):
+    if request.path.startswith('/static'): # Skip static files to reduce noise
+        return response
+        
+    now = time.time()
+    duration = round(now - g.start_time, 4) if hasattr(g, 'start_time') else 0
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    
+    log_payload = {
+        "method": request.method,
+        "path": request.path,
+        "status": response.status_code,
+        "duration": duration,
+        "ip": ip,
+        "user_agent": request.headers.get('User-Agent')
+    }
+    
+    # Log level based on status
+    if response.status_code >= 500:
+        logger.error(f"Request failed: {log_payload}")
+    elif response.status_code >= 400:
+        logger.warning(f"Bad request: {log_payload}")
+    else:
+        logger.info(f"Request handled: {log_payload}")
+        
+    return response
+
 
 # Configure Session/Memory Services (Keep these global as they are storage)
 session_service = InMemorySessionService()
