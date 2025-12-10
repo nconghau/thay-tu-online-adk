@@ -53,6 +53,11 @@ license: mit
 *   **An Toàn**: Input validation, ẩn API Keys.
 *   **Riêng Tư**: Không lưu data người dùng.
 
+### 7. 📡 Giám Sát & Logging
+*   **Google Cloud Logging**: Tích hợp Logs Explorer.
+*   **Traceability**: Theo dõi trọn vẹn hành trình (Request -> Agent -> Response) qua `trace_id`.
+*   **Dễ Dàng Debug**: Log đầy đủ request body và response detail.
+
 ---
 
 ## 🛠️ Công Nghệ Sử Dụng
@@ -62,6 +67,8 @@ license: mit
 *   **Frontend**: HTML5, CSS3 (Responsive), JavaScript (Vanilla).
 *   **Security**: Flask-Limiter, Dotenv.
 *   **Charting**: Chart.js (vẽ biểu đồ Radar).
+*   **Logging**: Google Cloud Logging (Structured JSON logs).
+*   **Search**: DuckDuckGo Search (Enhanced with retry & sources).
 
 ---
 
@@ -96,6 +103,15 @@ license: mit
     python app.py
     ```
     *   Truy cập: `http://localhost:7860`
+
+### Triển khai trên Hugging Face Spaces
+
+1.  **Tạo Space**: Chọn Docker hoặc Global.
+2.  **Cấu hình Secrets (Environment Variables)**:
+    *   `GOOGLE_API_KEY`: API Key của bạn.
+    *   `SESSION_SECRET`: Chuỗi ngẫu nhiên bảo mật session.
+    *   `GOOGLE_CREDENTIALS_JSON`: Nội dung file JSON Service Account của Google Cloud (để bật Logging).
+3.  **Deploy**: Push code lên Space và tận hưởng!
 
 ---
 
