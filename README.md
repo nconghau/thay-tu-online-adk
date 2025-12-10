@@ -12,7 +12,7 @@ license: mit
 
 ![Thầy Tư Banner](https://res.cloudinary.com/dkeupjars/image/upload/v1765298289/agent/thay-tu-online-banner_bodf9j.png)
 
-[![Live Demo](https://img.shields.io/badge/🔮%20Live%20Demo-HuggingFace%20Spaces-FFD700?style=for-the-badge&logo=huggingface)](https://huggingface.co/spaces/nconghau/thay-tu-online)
+[![Live Demo](https://img.shields.io/badge/🔮%20Live%20Demo-HuggingFace%20Spaces-FFD700?style=for-the-badge&logo=huggingface)](https://nconghau-thay-tu-online.hf.space/)
 
 **"Thiên cơ bất khả lộ... nhưng Thầy Tư thì có thể!"**
 

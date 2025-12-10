@@ -16,12 +16,18 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   background: var(--bg-gradient);
+  background-color: #1a0a0a; /* Fallback/Overscroll color */
+  background-attachment: fixed; /* Fix gradient during scroll */
   min-height: 100vh;
+  margin: 0;
+}
+
+body {
   font-family: 'Roboto', sans-serif;
   color: var(--text-color);
-  margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -150,14 +156,36 @@ body {
   gap: 0.5rem;
   padding: 1rem;
   overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow-x: auto;
+  /* scrollbar-width: none;  <-- Removed to allow default or styled scrollbar */
+  /* -ms-overflow-style: none; */
   background: rgba(0, 0, 0, 0.4);
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* Custom Scrollbar for Chips */
 .suggestion-chips::-webkit-scrollbar {
-  display: none;
+  height: 6px; /* Visible height */
+  display: block; /* Force display */
+}
+
+.suggestion-chips::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.suggestion-chips::-webkit-scrollbar-thumb {
+  background: var(--gold-dim);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.suggestion-chips::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
 }
 
 .chip {
@@ -165,6 +193,7 @@ body {
   border: 1px solid var(--gold-dim);
   border-radius: 20px;
   padding: 0.5rem 1rem;
+  padding-bottom: 0.5rem;
   color: var(--gold);
   font-size: 0.9rem;
   white-space: nowrap;
@@ -311,6 +340,7 @@ footer small {
     height: 100vh; /* Full viewport height */
     width: 100%;
     background: none; /* Remove pattern on mobile if desired, or keep */
+    overflow: hidden; /* Prevent body scroll, handle inside chat */
   }
 
   .main-container {
@@ -327,6 +357,11 @@ footer small {
     background: rgba(45, 21, 21, 0.95);
     border-bottom: 1px solid var(--gold-dim);
     z-index: 10;
+    min-height: 60px; /* Reduced height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
   }
 
   .logo-container {
@@ -334,7 +369,7 @@ footer small {
   }
 
   .title {
-    font-size: 1.5rem;
+    font-size: 1.2rem; /* Smaller title */
     margin: 0;
     line-height: 1.2;
     display: inline-block;
@@ -395,9 +430,11 @@ footer small {
 
   .chip {
     padding: 0.5rem 1rem;
-    padding-bottom: 1rem;
+    padding-bottom: 1.5rem;
     font-size: 0.85rem;
     flex-shrink: 0; /* Prevent chips from shrinking */
+    align-items: center;
+    justify-content: center;
   }
 
   .input-area {
@@ -442,6 +479,8 @@ footer small {
   }
   .chip {
     font-size: 0.85rem;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -462,4 +501,10 @@ footer small {
   .message-content {
     font-size: 1.1rem; /* Slightly larger text for readability */
   }
+}
+
+.disclaimer-text {
+  color: rgba(245, 230, 211, 0.5);
+  font-size: 0.7rem;
+  font-style: italic;
 }
