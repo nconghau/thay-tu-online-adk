@@ -1,5 +1,6 @@
 import re
 import datetime
+import time
 from duckduckgo_search import DDGS
 from google.adk.agents.llm_agent import Agent
 import json
@@ -95,31 +96,43 @@ def tra_cuu_tu_vi_online(du_lieu_dau_vao: str, linh_vuc: str = "tổng quát") -
         query = f"Tử vi tuổi {can_chi} sinh năm {ns} năm {current_year} {linh_vuc} luận giải chi tiết"
         print(f"\n[SYSTEM] Tra cứu: '{query}'")
 
-        # Fallback an toàn: Nếu search lỗi thì trả về hướng dẫn để AI tự chém
-        try:
-            results = DDGS().text(keywords=query, region='vn-vi', max_results=3)
-        except Exception as search_err:
-            print(f"[WARN] Search error: {search_err}")
-            results = None
+        # Improve: Retry logic & Better query params
+        max_retries = 3
+        results = None
+        
+        for attempt in range(max_retries):
+            try:
+                # timelimit='y' -> past year (tốt cho tử vi năm mới)
+                # backend='api' -> thường ổn định hơn
+                with DDGS() as ddgs:
+                    results = list(ddgs.text(keywords=query, region='vn-vi', max_results=5, timelimit='y'))
+                if results: break
+            except Exception as e:
+                print(f"[WARN] Search attempt {attempt+1} failed: {e}")
+                time.sleep(1) # wait a bit
 
         knowledge = []
         if results:
             for res in results:
-                if res and 'body' in res and len(res['body']) > 50:
-                     knowledge.append(f"- {res['body']}")
+                # Improve: Lấy cả Title và Link để Agent biết nguồn
+                title = res.get('title', 'N/A')
+                body = res.get('body', '')
+                href = res.get('href', '')
+                if len(body) > 30: # Filter rác
+                    knowledge.append(f"Source: [{title}]({href})\nContent: {body}")
         
         if not knowledge:
             # RETURN FALLBACK (QUAN TRỌNG)
             return {
                 "status": "fallback_internal",
                 "tuoi": can_chi,
-                "message": "Mạng bị chập chờn không tra được. Con hãy dùng kiến thức Ngũ Hành, Can Chi của mình để tự luận giải cho khách."
+                "message": "Nay mạng, sao Diêm Vương chiếu ngay cục wifi nên thầy hông tra được. Con tự luận bằng kiến thức của mình đi."
             }
 
         return {
             "status": "success",
             "tuoi": can_chi,
-            "du_lieu_tu_vi": "\n".join(knowledge)
+            "du_lieu_tu_vi": "\n---\n".join(knowledge) # Dùng separator rõ ràng
         }
 
     except Exception as e:
