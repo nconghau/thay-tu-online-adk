@@ -123,4 +123,14 @@ license: mit
 
 ---
 
+## 🤝 Cùng nhau code
+
+Chúng tôi rất hoan nghênh mọi sự đóng góp để Thầy Tư ngày càng "linh" hơn! 
+
+## 📄 License
+
+Dự án này được phân phối dưới giấy phép **MIT License**. Xem file `LICENSE` để biết thêm chi tiết.
+
+---
+
 **@nconghau - v1.0.0**
