@@ -9,4 +9,4 @@
 # docker-compose up --build -d
 # git push -f origin main && git push -f space main 
 
-git push origin main && git push space main 
+git push -f origin main && git push -f space main 
