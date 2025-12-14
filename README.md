@@ -123,4 +123,4 @@ license: mit
 
 ---
 
-**@nconghau25 ❤️  ☕ v1.0.0**
+**@nconghau - v1.0.0**
